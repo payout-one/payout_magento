@@ -1,0 +1,21 @@
+{
+    "name": "payout/payment",
+    "description": "Payout Payment Gateway",
+    "require": {
+      "php": "7.3",
+    },
+    "type": "magento2-module",
+    "version": "2.4",
+    "license": [
+        "OSL-3.0",
+        "AFL-3.0"
+    ],
+    "extra": {
+        "map": [
+            [
+                "*",
+                "Payout/Payment"
+            ]
+        ]
+    }
+}

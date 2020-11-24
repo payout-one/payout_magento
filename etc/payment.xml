@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+/*
+ * Copyright (c) 2020 Payout One
+ *
+ * Author: Web Technology Codes Software Services LLP
+ * 
+ * Released under the GNU General Public License
+ */
+-->
+<payment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Payment:etc/payment.xsd">
+    <methods>
+        <method name="payout">
+            <allow_multiple_address>1</allow_multiple_address>
+        </method>
+    </methods>
+</payment>
