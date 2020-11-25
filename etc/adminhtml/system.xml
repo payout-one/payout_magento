@@ -24,6 +24,11 @@
                     <label>Successful Order status</label>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
                 </field>
+				<field id="notify_url" translate="label" type="text" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Notify Url</label>
+					<!--backend_model>Payout\Payment\Model\Config\Backend\Notify</backend_model-->
+					<frontend_model>Payout\Payment\Block\System\Config\Form\Field\Disable</frontend_model>
+                </field>
                 <field id="test_mode" translate="label" type="select" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Test Mode</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
@@ -63,6 +68,7 @@
                     <label>Sort Order</label>
                     <frontend_class>validate-number</frontend_class>
                 </field>
+				
 				
             </group>
         </section>
