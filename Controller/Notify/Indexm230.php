@@ -37,14 +37,13 @@ class Indexm230 extends AbstractPayout implements CsrfAwareActionInterface
     {
 		
 		$notification = file_get_contents('php://input');
-		$post = json_encode($_POST);
-		$get = json_encode($_GET);
+		//$post = json_encode($_POST);
+		//$get = json_encode($_GET);
 		$pre = __METHOD__ . " : ";
-		 $this->_payoutlogger->info('I did Indexm230');
+		//$this->_payoutlogger->info('I did Indexm230');
 		// $this->_payoutlogger->info($post);
 		 $this->_payoutlogger->info($notification);
 		$this->_logger->error( $pre . "Logger notify from background123" );
-		die('Indexm220');
         
 
         $page_object = $this->pageFactory->create();

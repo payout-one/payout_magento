@@ -387,7 +387,7 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
 		
 		$checkout_data = array(
 			'amount' => $order->getGrandTotal(),
-			'currency' => "EUR",//$order->getOrderCurrencyCode(),
+			'currency' => $order->getOrderCurrencyCode(),
 			'customer' => [
 				'first_name' => $order->getCustomerFirstname(),
 				'last_name' => $order->getCustomerLastname(),
@@ -408,8 +408,10 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
 		$this->_payoutlogger->info(json_encode($response));
 		
 		$checkoutUrl = $response->checkout_url;
-		header("Location: $checkoutUrl"); 
-		exit(0);
+		return $checkoutUrl;
+		//header("Location: $checkoutUrl");
+		//$this->getResponse()->setBody(); 
+		//exit(0);
     }
 	
 	

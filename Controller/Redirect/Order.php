@@ -32,7 +32,9 @@ class Order extends \Payout\Payment\Controller\AbstractPayout
      */
     public function execute()
     {
-		$orderId = $_GET['gid'];
+		$params = $this->getRequest()->getParams();
+		
+		$orderId = $params['gid'];
 		$order = $this->getOrderByIncrementId($orderId);
 
 		$page_object = $this->pageFactory->create();

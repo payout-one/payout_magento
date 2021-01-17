@@ -70,7 +70,7 @@ class Request extends \Magento\Framework\View\Element\Template
             ->setId( 'payout_checkout' )
             ->setName( 'payout_checkout' )
             ->setFormMethod( 'POST' )
-            ->setFormAction( 'https://payout.one/payment/redirect' )
+            ->setFormAction( $this->_paymentMethod->getStandardCheckoutFormFields() )
             ->setFormData( $this->_paymentMethod->getStandardCheckoutFormFields() )
             ->setSubmitForm( '<script type="text/javascript">document.getElementById( "payout_checkout" ).submit();</script>' );
 
