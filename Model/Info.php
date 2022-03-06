@@ -3,7 +3,7 @@
  * Copyright (c) 2020 Payout One
  *
  * Author: Web Technology Codes Software Services LLP
- * 
+ *
  * Released under the GNU General Public License
  */
 
@@ -29,12 +29,12 @@ class Info
      * @return string
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    protected function _getValue( $value, $key )
+    protected function _getValue($value, $key)
     {
         $label       = '';
-        $outputValue = implode( ', ', (array) $value );
+        $outputValue = implode(', ', (array)$value);
 
-        return sprintf( '#%s%s', $outputValue, $outputValue == $label ? '' : ': ' . $label );
+        return sprintf('#%s%s', $outputValue, $outputValue == $label ? '' : ': ' . $label);
     }
 
 }

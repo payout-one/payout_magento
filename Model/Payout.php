@@ -3,27 +3,27 @@
  * Copyright (c) 2020 Payout One
  *
  * Author: Web Technology Codes Software Services LLP
- * 
+ *
  * Released under the GNU General Public License
  */
+
 namespace Payout\Payment\Model;
 
+use Magento\Framework\Data\Form\FormKey;
+use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Sales\Api\Data\OrderPaymentInterface;
 use Magento\Sales\Model\Order\Payment;
 use Magento\Sales\Model\Order\Payment\Transaction;
-use Magento\Framework\Data\Form\FormKey;
-use Magento\Vault\Model\CreditCardTokenFactory;
-use Magento\Vault\Api\PaymentTokenRepositoryInterface;
-
-use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Vault\Api\Data\PaymentTokenInterface;
 use Magento\Vault\Api\PaymentTokenManagementInterface;
-use Magento\Vault\Model\Ui\VaultConfigProvider;
+use Magento\Vault\Api\PaymentTokenRepositoryInterface;
+use Magento\Vault\Model\CreditCardTokenFactory;
 use Magento\Vault\Model\ResourceModel\PaymentToken as PaymentTokenResourceModel;
+use Magento\Vault\Model\Ui\VaultConfigProvider;
+use Payout\Payment\Api\Client as PayoutClient;
 
 /* Payout Api */
-use Payout\Payment\Api\Client as PayoutClient;
 
 /**
  * @SuppressWarnings(PHPMD.TooManyFields)
@@ -178,8 +178,8 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
     protected $transactionBuilder;
     protected $creditCardTokenFactory;
     protected $paymentTokenRepository;
-	
-	/**
+
+    /**
      * @var PaymentTokenManagementInterface
      */
     protected $paymentTokenManagement;
@@ -188,23 +188,23 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      * @var EncryptorInterface
      */
     protected $encryptor;
-	
-	/**
+
+    /**
      * @var Payment
      */
     protected $payment;
-	
-	/**
+
+    /**
      * @var PaymentTokenResourceModel
      */
     protected $paymentTokenResourceModel;
-	
-	/**
+
+    /**
      * Logging instance
      * @var \Payout\Payment\Logger\Logger
      */
     protected $_payoutlogger;
-	
+
 
     /**
      * @param \Magento\Framework\Model\Context $context
@@ -228,7 +228,8 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      * @param array $data
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
-    public function __construct( \Magento\Framework\Model\Context $context,
+    public function __construct(
+        \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
         \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
         \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
@@ -236,7 +237,7 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Payment\Model\Method\Logger $logger,
         ConfigFactory $configFactory,
-		\Payout\Payment\Logger\Logger $payoutlogger,
+        \Payout\Payment\Logger\Logger $payoutlogger,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\UrlInterface $urlBuilder,
         \Magento\Framework\Data\Form\FormKey $formKey,
@@ -246,32 +247,43 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface $transactionBuilder,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
-		CreditCardTokenFactory $CreditCardTokenFactory,
-		PaymentTokenRepositoryInterface $PaymentTokenRepositoryInterface,
-		PaymentTokenManagementInterface $paymentTokenManagement,
+        CreditCardTokenFactory $CreditCardTokenFactory,
+        PaymentTokenRepositoryInterface $PaymentTokenRepositoryInterface,
+        PaymentTokenManagementInterface $paymentTokenManagement,
         EncryptorInterface $encryptor,
-		PaymentTokenResourceModel $paymentTokenResourceModel,
-        array $data = [] ) {
-        parent::__construct( $context, $registry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $logger, $resource, $resourceCollection, $data );
-		
-        $this->_storeManager         = $storeManager;
-        $this->_urlBuilder           = $urlBuilder;
-        $this->_formKey              = $formKey;
-        $this->_checkoutSession      = $checkoutSession;
-        $this->_exception            = $exception;
-        $this->transactionRepository = $transactionRepository;
-        $this->transactionBuilder    = $transactionBuilder;
+        PaymentTokenResourceModel $paymentTokenResourceModel,
+        array $data = []
+    ) {
+        parent::__construct(
+            $context,
+            $registry,
+            $extensionFactory,
+            $customAttributeFactory,
+            $paymentData,
+            $scopeConfig,
+            $logger,
+            $resource,
+            $resourceCollection,
+            $data
+        );
+
+        $this->_storeManager             = $storeManager;
+        $this->_urlBuilder               = $urlBuilder;
+        $this->_formKey                  = $formKey;
+        $this->_checkoutSession          = $checkoutSession;
+        $this->_exception                = $exception;
+        $this->transactionRepository     = $transactionRepository;
+        $this->transactionBuilder        = $transactionBuilder;
         $this->creditCardTokenFactory    = $CreditCardTokenFactory;
         $this->paymentTokenRepository    = $PaymentTokenRepositoryInterface;
-		$this->paymentTokenManagement = $paymentTokenManagement;
-        $this->encryptor = $encryptor;
-		$this->paymentTokenResourceModel = $paymentTokenResourceModel;
+        $this->paymentTokenManagement    = $paymentTokenManagement;
+        $this->encryptor                 = $encryptor;
+        $this->paymentTokenResourceModel = $paymentTokenResourceModel;
 
         $parameters = ['params' => [$this->_code]];
 
-        $this->_config = $configFactory->create( $parameters );
-		$this->_payoutlogger = $payoutlogger;
-
+        $this->_config       = $configFactory->create($parameters);
+        $this->_payoutlogger = $payoutlogger;
     }
 
     /**
@@ -282,14 +294,14 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      *
      * @return $this
      */
-    public function setStore( $store )
+    public function setStore($store)
     {
-        $this->setData( 'store', $store );
+        $this->setData('store', $store);
 
-        if ( null === $store ) {
+        if (null === $store) {
             $store = $this->_storeManager->getStore()->getId();
         }
-        $this->_config->setStoreId( is_object( $store ) ? $store->getId() : $store );
+        $this->_config->setStoreId(is_object($store) ? $store->getId() : $store);
 
         return $this;
     }
@@ -301,16 +313,16 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      *
      * @return bool
      */
-    public function canUseForCurrency( $currencyCode )
+    public function canUseForCurrency($currencyCode)
     {
-        return $this->_config->isCurrencyCodeSupported( $currencyCode );
+        return $this->_config->isCurrencyCodeSupported($currencyCode);
     }
 
     /**
      * Payment action getter compatible with payment model
      *
-     * @see \Magento\Sales\Model\Payment::place()
      * @return string
+     * @see \Magento\Sales\Model\Payment::place()
      */
     public function getConfigPaymentAction()
     {
@@ -324,9 +336,156 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      *
      * @return bool
      */
-    public function isAvailable( \Magento\Quote\Api\Data\CartInterface $quote = null )
+    public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
     {
-        return parent::isAvailable( $quote ) && $this->_config->isMethodAvailable();
+        return parent::isAvailable($quote) && $this->_config->isMethodAvailable();
+    }
+
+    public function getApiUrl()
+    {
+        return "https://sandbox.payout.one";
+    }
+
+    /**
+     * This is where we compile data posted by the form to Payout
+     * @return array
+     */
+    public function getStandardCheckoutFormFields()
+    {
+        $order = $this->_checkoutSession->getLastRealOrder();
+        $pre   = __METHOD__ . ' : ';
+
+        $clientId = $this->getConfigData('payout_id');
+        $secret   = $this->getConfigData('encryption_key');
+
+        $config = array(
+            'client_id'     => $clientId,
+            'client_secret' => $secret,
+            'sandbox'       => true
+        );
+
+        $payout = new PayoutClient($config);
+
+        $externalId = $order->getIncrementId();
+
+        $checkout_data = array(
+            'amount'       => $order->getGrandTotal(),
+            'currency'     => $order->getOrderCurrencyCode(),
+            'customer'     => [
+                'first_name' => $order->getCustomerFirstname(),
+                'last_name'  => $order->getCustomerLastname(),
+                'email'      => $order->getCustomerEmail()
+            ],
+            'external_id'  => $order->getIncrementId(),
+            'redirect_url' => $this->_urlBuilder->getUrl(
+                    'Payout/redirect/order',
+                    array('_secure' => true)
+                ) . '?form_key=' . $this->_formKey->getFormKey() . '&gid=' . $order->getRealOrderId(),
+        );
+
+
+        $this->_payoutlogger->info("***********************Sending Order Data to Payout*************************");
+        $this->_payoutlogger->info(json_encode($checkout_data));
+
+        $response = $payout->createCheckout($checkout_data);
+
+        $this->_payoutlogger->info("***********************Token Validation from Payout*************************");
+
+        $this->_payoutlogger->info(json_encode($response));
+
+        $checkoutUrl = $response->checkout_url;
+
+        return $checkoutUrl;
+        //header("Location: $checkoutUrl");
+        //$this->getResponse()->setBody();
+        //exit(0);
+    }
+
+    /**
+     * getTotalAmount
+     */
+    public function getTotalAmount($order)
+    {
+        if ($this->getConfigData('use_store_currency')) {
+            $price = $this->getNumberFormat($order->getGrandTotal());
+        } else {
+            $price = $this->getNumberFormat($order->getBaseGrandTotal());
+        }
+
+        return $price;
+    }
+
+    /**
+     * getNumberFormat
+     */
+    public function getNumberFormat($number)
+    {
+        return number_format($number, 2, '.', '');
+    }
+
+    /**
+     * getPaidSuccessUrl
+     */
+    public function getPaidSuccessUrl()
+    {
+        return $this->_urlBuilder->getUrl('Payout/redirect/success', array('_secure' => true));
+    }
+
+    public function getOrderPlaceRedirectUrl()
+    {
+        return $this->_urlBuilder->getUrl('Payout/redirect');
+    }
+
+    /**
+     * Checkout redirect URL getter for onepage checkout (hardcode)
+     *
+     * @return string
+     * @see Quote\Payment::getCheckoutRedirectUrl()
+     * @see \Magento\Checkout\Controller\Onepage::savePaymentAction()
+     */
+    public function getCheckoutRedirectUrl()
+    {
+        return $this->_urlBuilder->getUrl('Payout/redirect');
+    }
+
+    /**
+     *
+     * @param string $paymentAction
+     * @param object $stateObject
+     *
+     * @return $this
+     */
+    public function initialize($paymentAction, $stateObject)
+    {
+        $stateObject->setState(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT);
+        $stateObject->setStatus('pending_payment');
+        $stateObject->setIsNotified(false);
+
+        return parent::initialize($paymentAction, $stateObject);
+    }
+
+    /*
+     * called dynamically by checkout's framework.
+     */
+
+    /**
+     * getPaidNotifyUrl
+     */
+    public function getPaidNotifyUrl()
+    {
+        return $this->_urlBuilder->getUrl('Payout/notify', array('_secure' => true));
+    }
+
+    public function curlPost($url, $fields)
+    {
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_POST, count($fields));
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $fields);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($curl);
+        curl_close($curl);
+
+        return $response;
     }
 
     /**
@@ -334,7 +493,6 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      */
     protected function getStoreName()
     {
-
         $storeName = $this->_scopeConfig->getValue(
             'general/store_information/name',
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
@@ -351,98 +509,10 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      *
      * @return $this
      */
-    protected function _placeOrder( Payment $payment, $amount )
+    protected function _placeOrder(Payment $payment, $amount)
     {
-
         $pre = __METHOD__ . " : ";
-        $this->_logger->debug( $pre . 'bof' );
-
-    }
-	
-	public function getApiUrl(){
-		return "https://sandbox.payout.one";
-	}
-
-    /**
-     * This is where we compile data posted by the form to Payout
-     * @return array
-     */
-    public function getStandardCheckoutFormFields()
-    {
-		$order = $this->_checkoutSession->getLastRealOrder();
-        $pre = __METHOD__ . ' : ';
-		
-		$clientId = $this->getConfigData( 'payout_id' );
-		$secret = $this->getConfigData( 'encryption_key' );
-		
-		$config = array(
-			'client_id' => $clientId,
-			'client_secret' => $secret,
-			'sandbox' => true
-		);
-
-		$payout = new PayoutClient($config);
-		
-		$externalId = $order->getIncrementId();
-		
-		$checkout_data = array(
-			'amount' => $order->getGrandTotal(),
-			'currency' => $order->getOrderCurrencyCode(),
-			'customer' => [
-				'first_name' => $order->getCustomerFirstname(),
-				'last_name' => $order->getCustomerLastname(),
-				'email' =>  $order->getCustomerEmail()
-			],
-			'external_id' => $order->getIncrementId(),
-			'redirect_url' => $this->_urlBuilder->getUrl( 'Payout/redirect/order', array( '_secure' => true ) ) . '?form_key=' . $this->_formKey->getFormKey().'&gid='.$order->getRealOrderId(),
-		);
-		
-		
-		$this->_payoutlogger->info("***********************Sending Order Data to Payout*************************");
-		$this->_payoutlogger->info(json_encode($checkout_data));
-		
-		$response = $payout->createCheckout($checkout_data);
-		
-		$this->_payoutlogger->info("***********************Token Validation from Payout*************************");
-		
-		$this->_payoutlogger->info(json_encode($response));
-		
-		$checkoutUrl = $response->checkout_url;
-		return $checkoutUrl;
-		//header("Location: $checkoutUrl");
-		//$this->getResponse()->setBody(); 
-		//exit(0);
-    }
-	
-	
-    /**
-     * getTotalAmount
-     */
-    public function getTotalAmount( $order )
-    {
-        if ( $this->getConfigData( 'use_store_currency' ) ) {
-            $price = $this->getNumberFormat( $order->getGrandTotal() );
-        } else {
-            $price = $this->getNumberFormat( $order->getBaseGrandTotal() );
-        }
-
-        return $price;
-    }
-
-    /**
-     * getNumberFormat
-     */
-    public function getNumberFormat( $number )
-    {
-        return number_format( $number, 2, '.', '' );
-    }
-
-    /**
-     * getPaidSuccessUrl
-     */
-    public function getPaidSuccessUrl()
-    {
-        return $this->_urlBuilder->getUrl( 'Payout/redirect/success', array( '_secure' => true ) );
+        $this->_logger->debug($pre . 'bof');
     }
 
     /**
@@ -452,65 +522,13 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      *
      * @return false|\Magento\Sales\Api\Data\TransactionInterface
      */
-    protected function getOrderTransaction( $payment )
+    protected function getOrderTransaction($payment)
     {
-        return $this->transactionRepository->getByTransactionType( Transaction::TYPE_ORDER, $payment->getId(), $payment->getOrder()->getId() );
+        return $this->transactionRepository->getByTransactionType(
+            Transaction::TYPE_ORDER,
+            $payment->getId(),
+            $payment->getOrder()->getId()
+        );
     }
 
-    /*
-     * called dynamically by checkout's framework.
-     */
-    public function getOrderPlaceRedirectUrl()
-    {
-        return $this->_urlBuilder->getUrl( 'Payout/redirect' );
-
-    }
-    /**
-     * Checkout redirect URL getter for onepage checkout (hardcode)
-     *
-     * @see \Magento\Checkout\Controller\Onepage::savePaymentAction()
-     * @see Quote\Payment::getCheckoutRedirectUrl()
-     * @return string
-     */
-    public function getCheckoutRedirectUrl()
-    {
-        return $this->_urlBuilder->getUrl( 'Payout/redirect' );
-    }
-
-    /**
-     *
-     * @param string $paymentAction
-     * @param object $stateObject
-     *
-     * @return $this
-     */
-    public function initialize( $paymentAction, $stateObject )
-    {
-        $stateObject->setState( \Magento\Sales\Model\Order::STATE_PENDING_PAYMENT );
-        $stateObject->setStatus( 'pending_payment' );
-        $stateObject->setIsNotified( false );
-
-        return parent::initialize( $paymentAction, $stateObject );
-
-    }
-
-    /**
-     * getPaidNotifyUrl
-     */
-    public function getPaidNotifyUrl()
-    {
-        return $this->_urlBuilder->getUrl( 'Payout/notify', array( '_secure' => true ) );
-    }
-
-    public function curlPost( $url, $fields )
-    {
-        $curl = curl_init( $url );
-        curl_setopt( $curl, CURLOPT_POST, count( $fields ) );
-        curl_setopt( $curl, CURLOPT_POSTFIELDS, $fields );
-        curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1 );
-        $response = curl_exec( $curl );
-        curl_close( $curl );
-        return $response;
-    }
-	
 }

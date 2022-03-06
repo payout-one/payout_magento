@@ -3,9 +3,10 @@
  * Copyright (c) 2020 Payout One
  *
  * Author: Web Technology Codes Software Services LLP
- * 
+ *
  * Released under the GNU General Public License
  */
+
 namespace Payout\Payment\Helper;
 
 /**
@@ -24,21 +25,18 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @var \Magento\Payment\Helper\Data
      */
     protected $_paymentData;
-
-    /**
-     * @var array
-     */
-    private $methodCodes;
-
-    /**
-     * @var \Payout\Payment\Model\ConfigFactory
-     */
-    private $configFactory;
-
     /**
      * @var \Psr\Log\LoggerInterface
      */
     protected $_logger;
+    /**
+     * @var array
+     */
+    private $methodCodes;
+    /**
+     * @var \Payout\Payment\Model\ConfigFactory
+     */
+    private $configFactory;
 
     /**
      * @param \Magento\Framework\App\Helper\Context $context
@@ -55,14 +53,14 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->_logger = $context->getLogger();
 
         $pre = __METHOD__ . " : ";
-        $this->_logger->debug( $pre . 'bof, methodCodes is : ', $methodCodes );
+        $this->_logger->debug($pre . 'bof, methodCodes is : ', $methodCodes);
 
         $this->_paymentData  = $paymentData;
         $this->methodCodes   = $methodCodes;
         $this->configFactory = $configFactory;
 
-        parent::__construct( $context );
-        $this->_logger->debug( $pre . 'eof' );
+        parent::__construct($context);
+        $this->_logger->debug($pre . 'eof');
     }
 
     /**
@@ -74,8 +72,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     public function shouldAskToCreateBillingAgreement()
     {
         $pre = __METHOD__ . " : ";
-        $this->_logger->debug( $pre . "bof" );
-        $this->_logger->debug( $pre . "eof" );
+        $this->_logger->debug($pre . "bof");
+        $this->_logger->debug($pre . "eof");
 
         return self::$_shouldAskToCreateBillingAgreement;
     }
@@ -88,17 +86,17 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      *
      * @return MethodInterface[]
      */
-    public function getBillingAgreementMethods( $store = null, $quote = null )
+    public function getBillingAgreementMethods($store = null, $quote = null)
     {
         $pre = __METHOD__ . " : ";
-        $this->_logger->debug( $pre . 'bof' );
+        $this->_logger->debug($pre . 'bof');
         $result = [];
-        foreach ( $this->_paymentData->getStoreMethods( $store, $quote ) as $method ) {
-            if ( $method instanceof MethodInterface ) {
+        foreach ($this->_paymentData->getStoreMethods($store, $quote) as $method) {
+            if ($method instanceof MethodInterface) {
                 $result[] = $method;
             }
         }
-        $this->_logger->debug( $pre . 'eof | result : ', $result );
+        $this->_logger->debug($pre . 'eof | result : ', $result);
 
         return $result;
     }

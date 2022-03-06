@@ -3,9 +3,10 @@
  * Copyright (c) 2020 Payout One
  *
  * Author: Web Technology Codes Software Services LLP
- * 
+ *
  * Released under the GNU General Public License
  */
+
 namespace Payout\Payment\Block;
 
 use Magento\Customer\Helper\Session\CurrentCustomer;
@@ -69,28 +70,15 @@ class Form extends \Magento\Payment\Block\Form
         array $data = []
     ) {
         $pre = __METHOD__ . " : ";
-        $this->_logger->debug( $pre . 'bof' );
+        $this->_logger->debug($pre . 'bof');
         $this->_payoutData         = $payoutData;
         $this->payoutConfigFactory = $payoutConfigFactory;
-        $this->_localeResolver      = $localeResolver;
-        $this->_config              = null;
-        $this->_isScopePrivate      = true;
-        $this->currentCustomer      = $currentCustomer;
-        parent::__construct( $context, $data );
-        $this->_logger->debug( $pre . "eof" );
-    }
-
-    /**
-     * Set template and redirect message
-     *
-     * @return null
-     */
-    protected function _construct()
-    {
-        $pre = __METHOD__ . " : ";
-        $this->_logger->debug( $pre . 'bof' );
-        $this->_config = $this->payoutConfigFactory->create()->setMethod( $this->getMethodCode() );
-        parent::_construct();
+        $this->_localeResolver     = $localeResolver;
+        $this->_config             = null;
+        $this->_isScopePrivate     = true;
+        $this->currentCustomer     = $currentCustomer;
+        parent::__construct($context, $data);
+        $this->_logger->debug($pre . "eof");
     }
 
     /**
@@ -101,9 +89,22 @@ class Form extends \Magento\Payment\Block\Form
     public function getMethodCode()
     {
         $pre = __METHOD__ . " : ";
-        $this->_logger->debug( $pre . 'bof' );
+        $this->_logger->debug($pre . 'bof');
 
         return $this->_methodCode;
+    }
+
+    /**
+     * Set template and redirect message
+     *
+     * @return null
+     */
+    protected function _construct()
+    {
+        $pre = __METHOD__ . " : ";
+        $this->_logger->debug($pre . 'bof');
+        $this->_config = $this->payoutConfigFactory->create()->setMethod($this->getMethodCode());
+        parent::_construct();
     }
 
 }

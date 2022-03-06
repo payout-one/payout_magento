@@ -1,4 +1,5 @@
 <?php
+
 namespace Payout\Payment\Logger;
 
 use Monolog\Logger;

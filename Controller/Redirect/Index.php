@@ -3,9 +3,10 @@
  * Copyright (c) 2020 Payout One
  *
  * Author: Web Technology Codes Software Services LLP
- * 
+ *
  * Released under the GNU General Public License
  */
+
 namespace Payout\Payment\Controller\Redirect;
 
 /**
@@ -39,25 +40,25 @@ class Index extends \Payout\Payment\Controller\AbstractPayout
 
         try {
             $this->_initCheckout();
-        } catch ( \Magento\Framework\Exception\LocalizedException $e ) {
-            $this->_logger->error( $pre . $e->getMessage() );
-            $this->messageManager->addExceptionMessage( $e, $e->getMessage() );
-            $this->_redirect( 'checkout/cart' );
-        } catch ( \Exception $e ) {
-            $this->_logger->error( $pre . $e->getMessage() );
-            $this->messageManager->addExceptionMessage( $e, __( 'We can\'t start Payout Checkout.' ) );
-            $this->_redirect( 'checkout/cart' );
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $this->_logger->error($pre . $e->getMessage());
+            $this->messageManager->addExceptionMessage($e, $e->getMessage());
+            $this->_redirect('checkout/cart');
+        } catch (\Exception $e) {
+            $this->_logger->error($pre . $e->getMessage());
+            $this->messageManager->addExceptionMessage($e, __('We can\'t start Payout Checkout.'));
+            $this->_redirect('checkout/cart');
         }
-		
-       $block = $page_object->getLayout()
-            ->getBlock( 'Payout' )
-            ->setPaymentFormData( isset( $order ) ? $order : null );
-			
-		$formData = $block->getFormData();
-		if(!$formData){
-			$this->_logger->error("We can\'t start Payout Checkout.");
-            $this->_redirect( 'checkout/cart' );
-		}
+
+        $block = $page_object->getLayout()
+                             ->getBlock('Payout')
+                             ->setPaymentFormData(isset($order) ? $order : null);
+
+        $formData = $block->getFormData();
+        if ( ! $formData) {
+            $this->_logger->error("We can\'t start Payout Checkout.");
+            $this->_redirect('checkout/cart');
+        }
 
         return $page_object;
     }

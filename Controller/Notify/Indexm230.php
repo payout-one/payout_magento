@@ -12,8 +12,8 @@
 namespace Payout\Payment\Controller\Notify;
 
 use Magento\Framework\App\CsrfAwareActionInterface;
-use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
+use Magento\Framework\App\RequestInterface;
 use Payout\Payment\Controller\AbstractPayout;
 
 class Indexm230 extends AbstractPayout implements CsrfAwareActionInterface
@@ -35,29 +35,28 @@ class Indexm230 extends AbstractPayout implements CsrfAwareActionInterface
      */
     public function execute()
     {
-		
-		$notification = file_get_contents('php://input');
-		//$post = json_encode($_POST);
-		//$get = json_encode($_GET);
-		$pre = __METHOD__ . " : ";
-		//$this->_payoutlogger->info('I did Indexm230');
-		// $this->_payoutlogger->info($post);
-		 $this->_payoutlogger->info($notification);
-		$this->_logger->error( $pre . "Logger notify from background123" );
-        
+        $notification = file_get_contents('php://input');
+        //$post = json_encode($_POST);
+        //$get = json_encode($_GET);
+        $pre = __METHOD__ . " : ";
+        //$this->_payoutlogger->info('I did Indexm230');
+        // $this->_payoutlogger->info($post);
+        $this->_payoutlogger->info($notification);
+        $this->_logger->error($pre . "Logger notify from background123");
+
 
         $page_object = $this->pageFactory->create();
 
         try {
             $this->_initCheckout();
-        } catch ( \Magento\Framework\Exception\LocalizedException $e ) {
-            $this->_logger->error( $pre . $e->getMessage() );
-            $this->messageManager->addExceptionMessage( $e, $e->getMessage() );
-            $this->_redirect( 'checkout/cart' );
-        } catch ( \Exception $e ) {
-            $this->_logger->error( $pre . $e->getMessage() );
-            $this->messageManager->addExceptionMessage( $e, __( 'We can\'t start PayOut Checkout.' ) );
-            $this->_redirect( 'checkout/cart' );
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $this->_logger->error($pre . $e->getMessage());
+            $this->messageManager->addExceptionMessage($e, $e->getMessage());
+            $this->_redirect('checkout/cart');
+        } catch (\Exception $e) {
+            $this->_logger->error($pre . $e->getMessage());
+            $this->messageManager->addExceptionMessage($e, __('We can\'t start PayOut Checkout.'));
+            $this->_redirect('checkout/cart');
         }
 
         return $page_object;
@@ -66,7 +65,7 @@ class Indexm230 extends AbstractPayout implements CsrfAwareActionInterface
     /**
      * @inheritDoc
      */
-    public function createCsrfValidationException( RequestInterface $request ):  ? InvalidRequestException
+    public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
     {
         // TODO: Implement createCsrfValidationException() method.
     }
@@ -74,7 +73,7 @@ class Indexm230 extends AbstractPayout implements CsrfAwareActionInterface
     /**
      * @inheritDoc
      */
-    public function validateForCsrf( RequestInterface $request ) :  ? bool
+    public function validateForCsrf(RequestInterface $request): ?bool
     {
         return true;
     }

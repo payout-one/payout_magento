@@ -41,12 +41,13 @@ class Checkout
      * Verify input data a return as array with required and optional attributes.
      *
      * @param $data
+     *
      * @return array
      * @throws Exception
      */
     public function create($data)
     {
-        if (!is_array($data)) {
+        if ( ! is_array($data)) {
             throw new Exception('Payout error: Wrong checkout parameters.');
         }
 
@@ -59,7 +60,7 @@ class Checkout
         );
 
         foreach ($checkout_required as $required_attribute) {
-            if (!key_exists($required_attribute, $data)) {
+            if ( ! key_exists($required_attribute, $data)) {
                 throw new Exception("Payout error: Missing required parameter \"$required_attribute\".");
             }
         }
@@ -71,23 +72,23 @@ class Checkout
         );
 
         foreach ($customer_required as $required_attribute) {
-            if (!key_exists($required_attribute, $data['customer'])) {
+            if ( ! key_exists($required_attribute, $data['customer'])) {
                 throw new Exception("Payout error: Missing required parameter \"$required_attribute\".");
             }
         }
 
         $checkout_data = array(
-            'amount' => number_format($data['amount'] * 100, 0, '.', ''), // Amount in cents
-            'currency' => $data['currency'],
-            'customer' => [
+            'amount'       => number_format($data['amount'] * 100, 0, '.', ''), // Amount in cents
+            'currency'     => $data['currency'],
+            'customer'     => [
                 'first_name' => $data['customer']['first_name'],
-                'last_name' =>  $data['customer']['last_name'],
-                'email' =>  $data['customer']['email']
+                'last_name'  => $data['customer']['last_name'],
+                'email'      => $data['customer']['email']
             ],
-            'external_id' => strval($data['external_id']),
-            'nonce' => '',
+            'external_id'  => strval($data['external_id']),
+            'nonce'        => '',
             'redirect_url' => $data['redirect_url'],
-            'signature' => ''
+            'signature'    => ''
         );
 
         if (isset($data['metadata']) && is_array($data['metadata'])) {

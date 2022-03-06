@@ -55,16 +55,19 @@ class Connection
     public function __construct($base_url)
     {
         $this->base_url = $base_url;
-        $this->curl = curl_init();
+        $this->curl     = curl_init();
 
-        curl_setopt_array($this->curl, array(
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1
-        ));
+        curl_setopt_array(
+            $this->curl,
+            array(
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING       => '',
+                CURLOPT_MAXREDIRS      => 10,
+                CURLOPT_TIMEOUT        => 0,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1
+            )
+        );
     }
 
     /**
@@ -76,19 +79,6 @@ class Connection
     public function addHeader($header, $value)
     {
         $this->headers[$header] = "$header: $value";
-    }
-
-    /**
-     * Clear previously cached request data and prepare for
-     * making a fresh request.
-     */
-    private function initializeRequest()
-    {
-        $this->response = '';
-        $this->addHeader('Content-Type', self::TYPE_JSON);
-        $this->addHeader('Accept', self::TYPE_JSON);
-
-        curl_setopt($this->curl, CURLOPT_HTTPHEADER, $this->headers);
     }
 
     /**
@@ -106,10 +96,12 @@ class Connection
     {
         $this->initializeRequest();
 
-        $credentials = json_encode(array(
-            'client_id' => $client_id,
-            'client_secret' => $client_secret
-        ));
+        $credentials = json_encode(
+            array(
+                'client_id'     => $client_id,
+                'client_secret' => $client_secret
+            )
+        );
 
         curl_setopt($this->curl, CURLOPT_URL, $this->base_url . $url);
         curl_setopt($this->curl, CURLOPT_POSTFIELDS, $credentials);
@@ -133,7 +125,7 @@ class Connection
         $this->addHeader('Authorization', 'Bearer ' . $this->token);
         $this->initializeRequest();
 
-        if (!is_string($body)) {
+        if ( ! is_string($body)) {
             $body = json_encode($body);
         }
 
@@ -156,23 +148,37 @@ class Connection
      */
     public function get($url, $query = false)
     {
-		//$url = "https://sandbox.payout.one/api/v1/";
+        //$url = "https://sandbox.payout.one/api/v1/";
         $this->addHeader('Authorization', 'Bearer ' . $this->token);
         $this->initializeRequest();
 
         if (is_array($query)) {
             $url .= '?' . http_build_query($query);
         }
-		$this->base_url . $query;
-		$url = $url . 'checkouts/1000004414';
+        $this->base_url . $query;
+        $url = $url . 'checkouts/1000004414';
         curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'GET');
         curl_setopt($this->curl, CURLOPT_URL, $this->base_url . $query);
         curl_setopt($this->curl, CURLOPT_POST, false);
         curl_setopt($this->curl, CURLOPT_PUT, false);
         curl_setopt($this->curl, CURLOPT_HTTPGET, true);
 
-		$resp =  curl_exec($this->curl);
+        $resp = curl_exec($this->curl);
+
         return $this->handleResponse();
+    }
+
+    /**
+     * Clear previously cached request data and prepare for
+     * making a fresh request.
+     */
+    private function initializeRequest()
+    {
+        $this->response = '';
+        $this->addHeader('Content-Type', self::TYPE_JSON);
+        $this->addHeader('Accept', self::TYPE_JSON);
+
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, $this->headers);
     }
 
     /**

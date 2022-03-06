@@ -3,13 +3,14 @@
  * Copyright (c) 2020 Payout One
  *
  * Author: Web Technology Codes Software Services LLP
- * 
+ *
  * Released under the GNU General Public License
  */
+
 namespace Payout\Payment\Model;
 
-use Magento\Payment\Model\MethodInterface;
 use Magento\Payment\Model\Method\ConfigInterface;
+use Magento\Payment\Model\MethodInterface;
 use Magento\Store\Model\ScopeInterface;
 
 /**
@@ -26,32 +27,32 @@ abstract class AbstractConfig implements ConfigInterface
 
     const PAYMENT_ACTION_ORDER = 'Order';
     /**#@-*/
-
-    /**
-     * Current payment method code
-     *
-     * @var string
-     */
-    protected $_methodCode;
-
-    /**
-     * Current store id
-     *
-     * @var int
-     */
-    protected $_storeId;
-
-    /**
-     * @var string
-     */
-    protected $pathPattern;
-
     /**
      * Core store config
      *
      * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
     public $_scopeConfig;
+    /**
+     * Current payment method code
+     *
+     * @var string
+     */
+    protected $_methodCode;
+    /**
+     * Current store id
+     *
+     * @var int
+     */
+    protected $_storeId;
+    /**
+     * @var string
+     */
+    protected $pathPattern;
+    /**
+     * @var MethodInterface
+     */
+    protected $methodInstance;
 
     /**
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
@@ -63,18 +64,13 @@ abstract class AbstractConfig implements ConfigInterface
     }
 
     /**
-     * @var MethodInterface
-     */
-    protected $methodInstance;
-
-    /**
      * Sets method instance used for retrieving method specific data
      *
      * @param MethodInterface $method
      *
      * @return $this
      */
-    public function setMethodInstance( $method )
+    public function setMethodInstance($method)
     {
         $this->methodInstance = $method;
 
@@ -88,11 +84,11 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return $this
      */
-    public function setMethod( $method )
+    public function setMethod($method)
     {
-        if ( $method instanceof MethodInterface ) {
+        if ($method instanceof MethodInterface) {
             $this->_methodCode = $method->getCode();
-        } elseif ( is_string( $method ) ) {
+        } elseif (is_string($method)) {
             $this->_methodCode = $method;
         }
 
@@ -116,9 +112,9 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return $this
      */
-    public function setStoreId( $storeId )
+    public function setStoreId($storeId)
     {
-        $this->_storeId = (int) $storeId;
+        $this->_storeId = (int)$storeId;
 
         return $this;
     }
@@ -133,18 +129,18 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function getValue( $key, $storeId = null )
+    public function getValue($key, $storeId = null)
     {
-        $underscored = strtolower( preg_replace( '/(.)([A-Z])/', "$1_$2", $key ) );
-        $path        = $this->_getSpecificConfigPath( $underscored );
+        $underscored = strtolower(preg_replace('/(.)([A-Z])/', "$1_$2", $key));
+        $path        = $this->_getSpecificConfigPath($underscored);
 
-        if ( $path !== null ) {
+        if ($path !== null) {
             $value = $this->_scopeConfig->getValue(
                 $path,
                 ScopeInterface::SCOPE_STORE,
                 $this->_storeId
             );
-            $value = $this->_prepareValue( $underscored, $value );
+            $value = $this->_prepareValue($underscored, $value);
 
             return $value;
         }
@@ -159,7 +155,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return void
      */
-    public function setMethodCode( $methodCode )
+    public function setMethodCode($methodCode)
     {
         $this->_methodCode = $methodCode;
     }
@@ -171,38 +167,9 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return void
      */
-    public function setPathPattern( $pathPattern )
+    public function setPathPattern($pathPattern)
     {
         $this->pathPattern = $pathPattern;
-    }
-
-    /**
-     * Map any supported payment method into a config path by specified field name
-     *
-     * @param string $fieldName
-     *
-     * @return string|null
-     */
-    protected function _getSpecificConfigPath( $fieldName )
-    {
-        if ( $this->pathPattern ) {
-            return sprintf( $this->pathPattern, $this->_methodCode, $fieldName );
-        }
-
-        return "payment/{$this->_methodCode}/{$fieldName}";
-    }
-
-    /**
-     * Perform additional config value preparation and return new value if needed
-     *
-     * @param string $key   Underscored key
-     * @param string $value Old value
-     *
-     * @return string Modified value or old value
-     */
-    protected function _prepareValue( $key, $value )
-    {
-        return $value;
     }
 
     /**
@@ -212,11 +179,11 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return bool
      */
-    public function isMethodAvailable( $methodCode = null )
+    public function isMethodAvailable($methodCode = null)
     {
         $methodCode = $methodCode ?: $this->_methodCode;
 
-        return $this->isMethodActive( $methodCode );
+        return $this->isMethodActive($methodCode);
     }
 
     /**
@@ -228,20 +195,21 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    public function isMethodActive( $method )
+    public function isMethodActive($method)
     {
-        switch ( $method ) {
+        switch ($method) {
             case Config::METHOD_CODE:
                 $isEnabled = $this->_scopeConfig->isSetFlag(
-                    'payment/' . Config::METHOD_CODE . '/active',
-                    ScopeInterface::SCOPE_STORE, $this->_storeId
-                ) ||
-                $this->_scopeConfig->isSetFlag(
-                    'payment/' . Config::METHOD_CODE . '/active',
-                    ScopeInterface::SCOPE_STORE,
-                    $this->_storeId
-                );
-                $method = Config::METHOD_CODE;
+                        'payment/' . Config::METHOD_CODE . '/active',
+                        ScopeInterface::SCOPE_STORE,
+                        $this->_storeId
+                    ) ||
+                             $this->_scopeConfig->isSetFlag(
+                                 'payment/' . Config::METHOD_CODE . '/active',
+                                 ScopeInterface::SCOPE_STORE,
+                                 $this->_storeId
+                             );
+                $method    = Config::METHOD_CODE;
                 break;
             default:
                 $isEnabled = $this->_scopeConfig->isSetFlag(
@@ -251,7 +219,7 @@ abstract class AbstractConfig implements ConfigInterface
                 );
         }
 
-        return $this->isMethodSupportedForCountry( $method ) && $isEnabled;
+        return $this->isMethodSupportedForCountry($method) && $isEnabled;
     }
 
     /**
@@ -264,8 +232,37 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function isMethodSupportedForCountry( $method = null, $countryCode = null )
+    public function isMethodSupportedForCountry($method = null, $countryCode = null)
     {
         return true;
+    }
+
+    /**
+     * Map any supported payment method into a config path by specified field name
+     *
+     * @param string $fieldName
+     *
+     * @return string|null
+     */
+    protected function _getSpecificConfigPath($fieldName)
+    {
+        if ($this->pathPattern) {
+            return sprintf($this->pathPattern, $this->_methodCode, $fieldName);
+        }
+
+        return "payment/{$this->_methodCode}/{$fieldName}";
+    }
+
+    /**
+     * Perform additional config value preparation and return new value if needed
+     *
+     * @param string $key Underscored key
+     * @param string $value Old value
+     *
+     * @return string Modified value or old value
+     */
+    protected function _prepareValue($key, $value)
+    {
+        return $value;
     }
 }

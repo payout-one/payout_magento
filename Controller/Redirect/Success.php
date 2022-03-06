@@ -8,13 +8,13 @@
  */
 
 namespace Payout\Payment\Controller\Redirect;
+
 /**
  * Responsible for loading page content.
  *
  * This is a basic controller that only loads the corresponding layout file. It may duplicate other such
  * controllers, and thus it is considered tech debt. This code duplication will be resolved in future releases.
  */
-
 class Success extends \Payout\Payment\Controller\AbstractPayout
 {
     /**
@@ -22,128 +22,136 @@ class Success extends \Payout\Payment\Controller\AbstractPayout
      */
     public function execute()
     {
-		$notification = json_decode(file_get_contents('php://input'));
-		
-		$this->_payoutlogger->info("*************************Payout Notify Response*************************");
-		$this->_payoutlogger->info(json_encode($notification));
-		if(!isset($notification->external_id)){
-			return;
-		}
-			
-		
-		$external_id = $notification->external_id;
-		
-		$order = $this->getOrderByIncrementId($external_id);
-		
+        $notification = json_decode(file_get_contents('php://input'));
+
+        $this->_payoutlogger->info("*************************Payout Notify Response*************************");
+        $this->_payoutlogger->info(json_encode($notification));
+        if ( ! isset($notification->external_id)) {
+            return;
+        }
+
+
+        $external_id = $notification->external_id;
+
+        $order = $this->getOrderByIncrementId($external_id);
+
         $pre = __METHOD__ . " : ";
-        $this->_logger->debug( $pre . 'bof' );
-		
+        $this->_logger->debug($pre . 'bof');
+
         $page_object = $this->pageFactory->create();
-		$baseurl      = $this->_storeManager->getStore()->getBaseUrl();
+        $baseurl     = $this->_storeManager->getStore()->getBaseUrl();
         try {
-            if ( isset( $notification->data->status ) ) {
-                $status = $notification->data->status ;
-				if($status == "succeeded"){
-					$status = \Magento\Sales\Model\Order::STATE_PROCESSING;
-					if ( $this->getConfigData( 'Successful_Order_status' ) != "" ) {
-						$status = $this->getConfigData( 'Successful_Order_status' );
-					}
-					$message = __(
-						'Redirect Response, Transaction has been approved: Payout_Checkout_Id: "%1"',
-						$notification->data->id
-					);
-					
-					$order->addStatusHistoryComment( __( $message ) )->save();
-					
+            if (isset($notification->data->status)) {
+                $status = $notification->data->status;
+                if ($status == "succeeded") {
+                    $status = \Magento\Sales\Model\Order::STATE_PROCESSING;
+                    if ($this->getConfigData('Successful_Order_status') != "") {
+                        $status = $this->getConfigData('Successful_Order_status');
+                    }
+                    $message = __(
+                        'Redirect Response, Transaction has been approved: Payout_Checkout_Id: "%1"',
+                        $notification->data->id
+                    );
 
-					$model                  = $this->_paymentMethod;
-					$order_successful_email = $model->getConfigData( 'order_email' );
+                    $order->addStatusHistoryComment(__($message))->save();
 
-					if ( $order_successful_email != '0' ) {
-						$this->OrderSender->send( $order );
-						$order->addStatusHistoryComment( __( 'Notified customer about order #%1.', $order->getId() ) )->setIsCustomerNotified( true )->save();
-					}
 
-					// Capture invoice when payment is successfull
-					$invoice = $this->_invoiceService->prepareInvoice( $order );
-					$invoice->setRequestedCaptureCase( \Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE );
-					$invoice->register();
+                    $model                  = $this->_paymentMethod;
+                    $order_successful_email = $model->getConfigData('order_email');
 
-					// Save the invoice to the order
-					$transaction = $this->_objectManager->create( 'Magento\Framework\DB\Transaction' )
-						->addObject( $invoice )
-						->addObject( $invoice->getOrder() );
+                    if ($order_successful_email != '0') {
+                        $this->OrderSender->send($order);
+                        $order->addStatusHistoryComment(
+                            __('Notified customer about order #%1.', $order->getId())
+                        )->setIsCustomerNotified(true)->save();
+                    }
 
-					$transaction->save();
+                    // Capture invoice when payment is successfull
+                    $invoice = $this->_invoiceService->prepareInvoice($order);
+                    $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                    $invoice->register();
 
-					// Magento\Sales\Model\Order\Email\Sender\InvoiceSender
-					$send_invoice_email = $model->getConfigData( 'invoice_email' );
-					if ( $send_invoice_email != '0' ) {
-						$this->invoiceSender->send( $invoice );
-						$order->addStatusHistoryComment( __( 'Notified customer about invoice #%1.', $invoice->getId() ) )->setIsCustomerNotified( true )->save();
-					}
-					
-					// Save Transaction Response
-					$this->createTransaction($order,$notification);
-					$order->setState($status)->setStatus($status)->save();
-				}
-                else{
-					$this->_order->addStatusHistoryComment( __( 'Redirect Response, Transaction has been declined, Payout_Checkout_Id: ' . $notification->data->id ) )->setIsCustomerNotified( false );
-					$order->cancel()->save();
-					// Save Transaction Response
-						$this->createTransaction($order,$notification);
+                    // Save the invoice to the order
+                    $transaction = $this->_objectManager->create('Magento\Framework\DB\Transaction')
+                                                        ->addObject($invoice)
+                                                        ->addObject($invoice->getOrder());
+
+                    $transaction->save();
+
+                    // Magento\Sales\Model\Order\Email\Sender\InvoiceSender
+                    $send_invoice_email = $model->getConfigData('invoice_email');
+                    if ($send_invoice_email != '0') {
+                        $this->invoiceSender->send($invoice);
+                        $order->addStatusHistoryComment(
+                            __('Notified customer about invoice #%1.', $invoice->getId())
+                        )->setIsCustomerNotified(true)->save();
+                    }
+
+                    // Save Transaction Response
+                    $this->createTransaction($order, $notification);
+                    $order->setState($status)->setStatus($status)->save();
+                } else {
+                    $this->_order->addStatusHistoryComment(
+                        __(
+                            'Redirect Response, Transaction has been declined, Payout_Checkout_Id: ' . $notification->data->id
+                        )
+                    )->setIsCustomerNotified(false);
+                    $order->cancel()->save();
+                    // Save Transaction Response
+                    $this->createTransaction($order, $notification);
                 }
             }
-        } catch ( \Magento\Framework\Exception\LocalizedException $e ) {
-			// Save Transaction Response
-			$this->createTransaction($order,$notification);
-            $this->_logger->error( $pre . $e->getMessage() );
-           
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            // Save Transaction Response
+            $this->createTransaction($order, $notification);
+            $this->_logger->error($pre . $e->getMessage());
         }
-		
-        return ;
+
+        return;
     }
-	
-	public function createTransaction($order = null, $paymentData)
+
+    public function createTransaction($order = null, $paymentData)
     {
-		$PayoutResponse = array(
-				'order_id' => $paymentData->data->external_id,
-				'amount' => $paymentData->data->amount,
-				'currency' => $paymentData->data->currency,
-				'customer_email' => $paymentData->data->customer->email,
-				'first_name' => $paymentData->data->customer->first_name,
-				'last_name' => $paymentData->data->customer->last_name,
-				'checkout_id' => $paymentData->data->id,
-				'failure_reason' => $paymentData->data->payment->failure_reason,
-				'payment_method' => $paymentData->data->payment->payment_method,
-				'nonce' => $paymentData->nonce,
-				'signature' => $paymentData->signature,
-				'type' => $paymentData->type
-			);
-			
-		$checkoutId = $paymentData->data->id;
+        $PayoutResponse = array(
+            'order_id'       => $paymentData->data->external_id,
+            'amount'         => $paymentData->data->amount,
+            'currency'       => $paymentData->data->currency,
+            'customer_email' => $paymentData->data->customer->email,
+            'first_name'     => $paymentData->data->customer->first_name,
+            'last_name'      => $paymentData->data->customer->last_name,
+            'checkout_id'    => $paymentData->data->id,
+            'failure_reason' => $paymentData->data->payment->failure_reason,
+            'payment_method' => $paymentData->data->payment->payment_method,
+            'nonce'          => $paymentData->nonce,
+            'signature'      => $paymentData->signature,
+            'type'           => $paymentData->type
+        );
+
+        $checkoutId = $paymentData->data->id;
         try {
             //get payment object from order object
             $payment = $order->getPayment();
             $payment->setLastTransId($checkoutId)
-					->setTransactionId($checkoutId)
-					->setAdditionalInformation([\Magento\Sales\Model\Order\Payment\Transaction::RAW_DETAILS => $PayoutResponse]);
+                    ->setTransactionId($checkoutId)
+                    ->setAdditionalInformation(
+                        [\Magento\Sales\Model\Order\Payment\Transaction::RAW_DETAILS => $PayoutResponse]
+                    );
             $formatedPrice = $order->getBaseCurrency()->formatTxt(
                 $order->getGrandTotal()
             );
 
             $message = __('The authorized amount is %1.', $formatedPrice);
             //get the object of builder class
-            $trans = $this->_transactionBuilder;
+            $trans       = $this->_transactionBuilder;
             $transaction = $trans->setPayment($payment)
-            ->setOrder($order)
-            ->setTransactionId($checkoutId)
-            ->setAdditionalInformation(
-                [\Magento\Sales\Model\Order\Payment\Transaction::RAW_DETAILS => $PayoutResponse]
-            )
-            ->setFailSafe(true)
-            //build method creates the transaction and returns the object
-            ->build(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_CAPTURE);
+                                 ->setOrder($order)
+                                 ->setTransactionId($checkoutId)
+                                 ->setAdditionalInformation(
+                                     [\Magento\Sales\Model\Order\Payment\Transaction::RAW_DETAILS => $PayoutResponse]
+                                 )
+                                 ->setFailSafe(true)
+                //build method creates the transaction and returns the object
+                                 ->build(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_CAPTURE);
 
             $payment->addTransactionCommentsToOrder(
                 $transaction,
@@ -153,15 +161,17 @@ class Success extends \Payout\Payment\Controller\AbstractPayout
             $payment->save();
             $order->save();
 
-            return  $transaction->save()->getTransactionId();
+            return $transaction->save()->getTransactionId();
         } catch (Exception $e) {
             //log errors here
         }
     }
-	
-	public function getOrderByIncrementId($incrementId){
-		$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-		$order = $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
-		return $order;
-	}
+
+    public function getOrderByIncrementId($incrementId)
+    {
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $order         = $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
+
+        return $order;
+    }
 }
