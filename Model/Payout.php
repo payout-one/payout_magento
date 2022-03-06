@@ -9,12 +9,32 @@
 
 namespace Payout\Payment\Model;
 
+use Magento\Checkout\Model\Session;
+use Magento\Framework\Api\AttributeValueFactory;
+use Magento\Framework\Api\ExtensionAttributesFactory;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\Data\Form\FormKey;
 use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Framework\Exception\LocalizedExceptionFactory;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Model\ResourceModel\AbstractResource;
+use Magento\Framework\Registry;
+use Magento\Framework\UrlInterface;
+use Magento\Payment\Helper\Data;
+use Magento\Payment\Model\Method\AbstractMethod;
+use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Sales\Api\Data\OrderPaymentInterface;
+use Magento\Sales\Api\Data\TransactionInterface;
+use Magento\Sales\Api\TransactionRepositoryInterface;
+use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Payment;
 use Magento\Sales\Model\Order\Payment\Transaction;
+use Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface;
+use Magento\Store\Model\ScopeInterface;
+use Magento\Store\Model\Store;
+use Magento\Store\Model\StoreManagerInterface;
 use Magento\Vault\Api\Data\PaymentTokenInterface;
 use Magento\Vault\Api\PaymentTokenManagementInterface;
 use Magento\Vault\Api\PaymentTokenRepositoryInterface;
@@ -22,6 +42,7 @@ use Magento\Vault\Model\CreditCardTokenFactory;
 use Magento\Vault\Model\ResourceModel\PaymentToken as PaymentTokenResourceModel;
 use Magento\Vault\Model\Ui\VaultConfigProvider;
 use Payout\Payment\Api\Client as PayoutClient;
+use Payout\Payment\Logger\Logger;
 
 /* Payout Api */
 
@@ -29,7 +50,7 @@ use Payout\Payment\Api\Client as PayoutClient;
  * @SuppressWarnings(PHPMD.TooManyFields)
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Payout extends \Magento\Payment\Model\Method\AbstractMethod
+class Payout extends AbstractMethod
 {
     /**
      * @var string
@@ -124,7 +145,7 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * Website Payments Pro instance
      *
-     * @var \Payout\Payment\Model\Config $config
+     * @var Config $config
      */
     protected $_config;
 
@@ -143,37 +164,37 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_authorizationCountKey = 'authorization_count';
 
     /**
-     * @var \Magento\Store\Model\StoreManagerInterface
+     * @var StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @var \Magento\Framework\UrlInterface
+     * @var UrlInterface
      */
     protected $_urlBuilder;
 
     /**
-     * @var \Magento\Framework\UrlInterface
+     * @var UrlInterface
      */
     protected $_formKey;
 
     /**
-     * @var \Magento\Checkout\Model\Session
+     * @var Session
      */
     protected $_checkoutSession;
 
     /**
-     * @var \Magento\Framework\Exception\LocalizedExceptionFactory
+     * @var LocalizedExceptionFactory
      */
     protected $_exception;
 
     /**
-     * @var \Magento\Sales\Api\TransactionRepositoryInterface
+     * @var TransactionRepositoryInterface
      */
     protected $transactionRepository;
 
     /**
-     * @var Transaction\BuilderInterface
+     * @var BuilderInterface
      */
     protected $transactionBuilder;
     protected $creditCardTokenFactory;
@@ -201,52 +222,52 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
 
     /**
      * Logging instance
-     * @var \Payout\Payment\Logger\Logger
+     * @var Logger
      */
     protected $_payoutlogger;
 
 
     /**
-     * @param \Magento\Framework\Model\Context $context
-     * @param \Magento\Framework\Registry $registry
-     * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
-     * @param \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory
-     * @param \Magento\Payment\Helper\Data $paymentData
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param Context $context
+     * @param Registry $registry
+     * @param ExtensionAttributesFactory $extensionFactory
+     * @param AttributeValueFactory $customAttributeFactory
+     * @param Data $paymentData
+     * @param ScopeConfigInterface $scopeConfig
      * @param \Magento\Payment\Model\Method\Logger $logger
-     * @param \Payout\Payment\Model\ConfigFactory $configFactory
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
-     * @param \Magento\Framework\UrlInterface $urlBuilder
-     * @param \Magento\Framework\Data\Form\FormKey $formKey
-     * @param \Payout\Payment\Model\CartFactory $cartFactory
-     * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Framework\Exception\LocalizedExceptionFactory $exception
-     * @param \Magento\Sales\Api\TransactionRepositoryInterface $transactionRepository
-     * @param Transaction\BuilderInterface $transactionBuilder
-     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
+     * @param ConfigFactory $configFactory
+     * @param StoreManagerInterface $storeManager
+     * @param UrlInterface $urlBuilder
+     * @param FormKey $formKey
+     * @param CartFactory $cartFactory
+     * @param Session $checkoutSession
+     * @param LocalizedExceptionFactory $exception
+     * @param TransactionRepositoryInterface $transactionRepository
+     * @param BuilderInterface $transactionBuilder
+     * @param AbstractResource $resource
+     * @param AbstractDb $resourceCollection
      * @param array $data
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Framework\Model\Context $context,
-        \Magento\Framework\Registry $registry,
-        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
-        \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
-        \Magento\Payment\Helper\Data $paymentData,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        Context $context,
+        Registry $registry,
+        ExtensionAttributesFactory $extensionFactory,
+        AttributeValueFactory $customAttributeFactory,
+        Data $paymentData,
+        ScopeConfigInterface $scopeConfig,
         \Magento\Payment\Model\Method\Logger $logger,
         ConfigFactory $configFactory,
-        \Payout\Payment\Logger\Logger $payoutlogger,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Framework\UrlInterface $urlBuilder,
-        \Magento\Framework\Data\Form\FormKey $formKey,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Framework\Exception\LocalizedExceptionFactory $exception,
-        \Magento\Sales\Api\TransactionRepositoryInterface $transactionRepository,
-        \Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface $transactionBuilder,
-        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        Logger $payoutlogger,
+        StoreManagerInterface $storeManager,
+        UrlInterface $urlBuilder,
+        FormKey $formKey,
+        Session $checkoutSession,
+        LocalizedExceptionFactory $exception,
+        TransactionRepositoryInterface $transactionRepository,
+        BuilderInterface $transactionBuilder,
+        AbstractResource $resource = null,
+        AbstractDb $resourceCollection = null,
         CreditCardTokenFactory $CreditCardTokenFactory,
         PaymentTokenRepositoryInterface $PaymentTokenRepositoryInterface,
         PaymentTokenManagementInterface $paymentTokenManagement,
@@ -290,7 +311,7 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      * Store setter
      * Also updates store ID in config object
      *
-     * @param \Magento\Store\Model\Store|int $store
+     * @param Store|int $store
      *
      * @return $this
      */
@@ -332,11 +353,11 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * Check whether payment method can be used
      *
-     * @param \Magento\Quote\Api\Data\CartInterface|Quote|null $quote
+     * @param CartInterface|Quote|null $quote
      *
      * @return bool
      */
-    public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
+    public function isAvailable(CartInterface $quote = null)
     {
         return parent::isAvailable($quote) && $this->_config->isMethodAvailable();
     }
@@ -393,12 +414,7 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
 
         $this->_payoutlogger->info(json_encode($response));
 
-        $checkoutUrl = $response->checkout_url;
-
-        return $checkoutUrl;
-        //header("Location: $checkoutUrl");
-        //$this->getResponse()->setBody();
-        //exit(0);
+        return $response->checkout_url;
     }
 
     /**
@@ -457,7 +473,7 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function initialize($paymentAction, $stateObject)
     {
-        $stateObject->setState(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT);
+        $stateObject->setState(Order::STATE_PENDING_PAYMENT);
         $stateObject->setStatus('pending_payment');
         $stateObject->setIsNotified(false);
 
@@ -493,12 +509,10 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      */
     protected function getStoreName()
     {
-        $storeName = $this->_scopeConfig->getValue(
+        return $this->_scopeConfig->getValue(
             'general/store_information/name',
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+            ScopeInterface::SCOPE_STORE
         );
-
-        return $storeName;
     }
 
     /**
@@ -520,7 +534,7 @@ class Payout extends \Magento\Payment\Model\Method\AbstractMethod
      *
      * @param OrderPaymentInterface $payment
      *
-     * @return false|\Magento\Sales\Api\Data\TransactionInterface
+     * @return false|TransactionInterface
      */
     protected function getOrderTransaction($payment)
     {

@@ -9,53 +9,61 @@
 
 namespace Payout\Payment\Block\Payment;
 
-class Request extends \Magento\Framework\View\Element\Template
+use Magento\Checkout\Model\Session;
+use Magento\Framework\Filesystem\Directory\ReadFactory;
+use Magento\Framework\Module\Dir\Reader;
+use Magento\Framework\View\Element\Template;
+use Magento\Framework\View\Element\Template\Context;
+use Magento\Sales\Model\OrderFactory;
+use Payout\Payment\Model\Payout;
+
+class Request extends Template
 {
 
     /**
-     * @var \Payout\Payment\Model\Payout $_paymentMethod
+     * @var Payout $_paymentMethod
      */
     protected $_paymentMethod;
 
     /**
-     * @var \Magento\Sales\Model\OrderFactory
+     * @var OrderFactory
      */
     protected $_orderFactory;
 
     /**
-     * @var \Magento\Checkout\Model\Session
+     * @var Session
      */
     protected $_checkoutSession;
 
     /**
-     * @var \Magento\Framework\Filesystem\Directory\ReadFactory $readFactory
+     * @var ReadFactory $readFactory
      */
     protected $readFactory;
 
     /**
-     * @var \Magento\Framework\Module\Dir\Reader $reader
+     * @var Reader $reader
      */
     protected $reader;
 
     /**
-     * @param \Magento\Framework\View\Element\Template\Context $context
-     * @param \Magento\Sales\Model\OrderFactory $orderFactory
-     * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Framework\Filesystem\Directory\ReadFactory $readFactory
-     * @param \Magento\Framework\Module\Dir\Reader $reader
-     * @param \Payout\Payment\Model\Payout $paymentMethod
+     * @param Context $context
+     * @param OrderFactory $orderFactory
+     * @param Session $checkoutSession
+     * @param ReadFactory $readFactory
+     * @param Reader $reader
+     * @param Payout $paymentMethod
      * @param array $data
      */
     public function __construct(
-        \Magento\Framework\View\Element\Template\Context $context,
-        \Magento\Sales\Model\OrderFactory $orderFactory,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Framework\Filesystem\Directory\ReadFactory $readFactory,
-        \Magento\Framework\Module\Dir\Reader $reader,
-        \Payout\Payment\Model\Payout $paymentMethod,
+        Context $context,
+        OrderFactory $orderFactory,
+        Session $checkoutSession,
+        ReadFactory $readFactory,
+        Reader $reader,
+        Payout $paymentMethod,
         array $data = []
     ) {
-        $this->_orderFactory = $orderFactory;
+        $this->_orderFactory    = $orderFactory;
         $this->_checkoutSession = $checkoutSession;
         parent::__construct($context, $data);
         $this->_isScopePrivate = true;

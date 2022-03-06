@@ -11,6 +11,15 @@
 
 namespace Payout\Payment\Model;
 
+use Magento\Directory\Helper\Data;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\UrlInterface;
+use Magento\Framework\View\Asset\Repository;
+use Magento\Payment\Model\Method\AbstractMethod;
+use Magento\Store\Model\ScopeInterface;
+use Magento\Store\Model\StoreManagerInterface;
+use Psr\Log\LoggerInterface;
+
 /**
  * Config model that is aware of all \Payout\Payment payment methods
  * Works with Payout-specific system configuration
@@ -21,18 +30,18 @@ class Config extends AbstractConfig
 {
 
     /**
-     * @var \Payout\Payment\Model\Payout this is a model which we will use.
+     * @var Payout this is a model which we will use.
      */
     const METHOD_CODE = 'payout';
 
     /**
      * Core
-     * data @var \Magento\Directory\Helper\Data
+     * data @var Data
      */
     protected $directoryHelper;
 
     /**
-     * @var \Magento\Store\Model\StoreManagerInterface
+     * @var StoreManagerInterface
      */
     protected $_storeManager;
 
@@ -45,39 +54,39 @@ class Config extends AbstractConfig
     protected $_supportedCurrencyCodes = ['USD', 'EUR', 'GPD', 'ZAR'];
 
     /**
-     * @var \Psr\Log\LoggerInterface
+     * @var LoggerInterface
      */
     protected $_logger;
 
     /**
-     * @var \Magento\Framework\UrlInterface
+     * @var UrlInterface
      */
     protected $_urlBuilder;
 
     /**
-     * @var \Magento\Framework\View\Asset\Repository
+     * @var Repository
      */
     protected $_assetRepo;
 
     /**
-     * @var \Magento\Framework\App\Config\ScopeConfigInterface
+     * @var ScopeConfigInterface
      */
     protected $scopeConfig;
 
     /**
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Directory\Helper\Data $directoryHelper
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param ScopeConfigInterface $scopeConfig
+     * @param Data $directoryHelper
+     * @param StoreManagerInterface $storeManager
      * @param array $params
-     * @param \Psr\Log\LoggerInterface $logger
-     * @param \Magento\Framework\View\Asset\Repository
+     * @param LoggerInterface $logger
+     * @param Repository
      */
     public function __construct(
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Directory\Helper\Data $directoryHelper,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Psr\Log\LoggerInterface $logger,
-        \Magento\Framework\View\Asset\Repository $assetRepo
+        ScopeConfigInterface $scopeConfig,
+        Data $directoryHelper,
+        StoreManagerInterface $storeManager,
+        LoggerInterface $logger,
+        Repository $assetRepo
     ) {
         $this->_logger = $logger;
         parent::__construct($scopeConfig);
@@ -207,13 +216,13 @@ class Config extends AbstractConfig
 
         switch ($action) {
             case self::PAYMENT_ACTION_AUTH:
-                $paymentAction = \Magento\Payment\Model\Method\AbstractMethod::ACTION_AUTHORIZE;
+                $paymentAction = AbstractMethod::ACTION_AUTHORIZE;
                 break;
             case self::PAYMENT_ACTION_SALE:
-                $paymentAction = \Magento\Payment\Model\Method\AbstractMethod::ACTION_AUTHORIZE_CAPTURE;
+                $paymentAction = AbstractMethod::ACTION_AUTHORIZE_CAPTURE;
                 break;
             case self::PAYMENT_ACTION_ORDER:
-                $paymentAction = \Magento\Payment\Model\Method\AbstractMethod::ACTION_ORDER;
+                $paymentAction = AbstractMethod::ACTION_ORDER;
                 break;
         }
 
@@ -252,7 +261,7 @@ class Config extends AbstractConfig
     public function getApiCredentials()
     {
         $data                   = array();
-        $storeScope             = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
+        $storeScope             = ScopeInterface::SCOPE_STORE;
         $data['encryption_key'] = $this->scopeConfig->getValue('payment/payout/encryption_key', $storeScope);
         $data['payout_id']      = $this->scopeConfig->getValue('payment/payout/payout_id', $storeScope);
 

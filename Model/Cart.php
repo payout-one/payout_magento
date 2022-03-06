@@ -9,6 +9,8 @@
 
 namespace Payout\Payment\Model;
 
+use Magento\Payment\Model\Cart\SalesModel\SalesModelInterface;
+
 /**
  * Payout-specific model for shopping cart items and totals
  * The main idea is to accommodate all possible totals into Payout-compatible 4 totals and line items
@@ -187,12 +189,12 @@ class Cart extends \Magento\Payment\Model\Cart
      * - Run shopping cart and estimate shipping
      * - Go to Payout
      *
-     * @param \Magento\Payment\Model\Cart\SalesModel\SalesModelInterface $salesEntity
+     * @param SalesModelInterface $salesEntity
      *
      * @return void
      */
     protected function _applyDiscountTaxCompensationWorkaround(
-        \Magento\Payment\Model\Cart\SalesModel\SalesModelInterface $salesEntity
+        SalesModelInterface $salesEntity
     ) {
         $dataContainer = $salesEntity->getTaxContainer();
         $this->addTax((double)$dataContainer->getBaseDiscountTaxCompensationAmount());

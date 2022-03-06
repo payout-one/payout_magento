@@ -9,6 +9,7 @@
 
 namespace Payout\Payment\Model;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Payment\Model\Method\ConfigInterface;
 use Magento\Payment\Model\MethodInterface;
 use Magento\Store\Model\ScopeInterface;
@@ -30,7 +31,7 @@ abstract class AbstractConfig implements ConfigInterface
     /**
      * Core store config
      *
-     * @var \Magento\Framework\App\Config\ScopeConfigInterface
+     * @var ScopeConfigInterface
      */
     public $_scopeConfig;
     /**
@@ -55,10 +56,10 @@ abstract class AbstractConfig implements ConfigInterface
     protected $methodInstance;
 
     /**
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+        ScopeConfigInterface $scopeConfig
     ) {
         $this->_scopeConfig = $scopeConfig;
     }

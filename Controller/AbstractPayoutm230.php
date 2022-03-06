@@ -10,10 +10,35 @@
 namespace Payout\Payment\Controller;
 
 use Magento\Checkout\Controller\Express\RedirectLoginInterface;
+use Magento\Checkout\Model\Session;
+use Magento\Customer\Model\Url;
 use Magento\Framework\App\Action\Action as AppAction;
+use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
+use Magento\Framework\DB\TransactionFactory;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Session\Generic;
+use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Framework\Url\Helper;
+use Magento\Framework\Url\Helper\Data;
+use Magento\Framework\UrlInterface;
+use Magento\Framework\View\Result\PageFactory;
+use Magento\Quote\Model\Quote;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Email\Sender\InvoiceSender;
+use Magento\Sales\Model\Order\Email\Sender\OrderSender;
+use Magento\Sales\Model\Order\Payment\Transaction\Builder;
+use Magento\Sales\Model\OrderFactory;
+use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
+use Magento\Sales\Model\Service\InvoiceService;
+use Magento\Store\Model\StoreManagerInterface;
+use Payout\Payment\Logger\Logger;
+use Payout\Payment\Model\Config;
+use Payout\Payment\Model\Payout;
+use Psr\Log\LoggerInterface;
 
 /**
  * Checkout Controller
@@ -29,12 +54,12 @@ abstract class AbstractPayoutm230 extends AppAction implements RedirectLoginInte
     protected $_checkoutTypes = [];
 
     /**
-     * @var \Payout\Payment\Model\Config
+     * @var Config
      */
     protected $_config;
 
     /**
-     * @var \Magento\Quote\Model\Quote
+     * @var Quote
      */
     protected $_quote = false;
 
@@ -46,7 +71,7 @@ abstract class AbstractPayoutm230 extends AppAction implements RedirectLoginInte
     protected $_configType = 'Payout\Payment\Model\Config';
 
     /** Config method type @var string */
-    protected $_configMethod = \Payout\Payment\Model\Config::METHOD_CODE;
+    protected $_configMethod = Config::METHOD_CODE;
 
     /**
      * Checkout mode type
@@ -61,72 +86,72 @@ abstract class AbstractPayoutm230 extends AppAction implements RedirectLoginInte
     protected $_customerSession;
 
     /**
-     * @var \Magento\Checkout\Model\Session $_checkoutSession
+     * @var Session $_checkoutSession
      */
     protected $_checkoutSession;
 
     /**
-     * @var \Magento\Sales\Model\OrderFactory
+     * @var OrderFactory
      */
     protected $_orderFactory;
 
     /**
-     * @var \Magento\Framework\Session\Generic
+     * @var Generic
      */
     protected $payoutSession;
 
     /**
-     * @var \Magento\Framework\Url\Helper
+     * @var Helper
      */
     protected $_urlHelper;
 
     /**
-     * @var \Magento\Customer\Model\Url
+     * @var Url
      */
     protected $_customerUrl;
 
     /**
-     * @var \Psr\Log\LoggerInterface
+     * @var LoggerInterface
      */
     protected $_logger;
 
     /**
      * Logging instance
-     * @var \Payout\Payment\Logger\Logger
+     * @var Logger
      */
     protected $_payoutlogger;
 
     /**
-     * @var  \Magento\Sales\Model\Order $_order
+     * @var  Order $_order
      */
     protected $_order;
 
     /**
-     * @var \Magento\Framework\View\Result\PageFactory
+     * @var PageFactory
      */
     protected $pageFactory;
 
     /**
-     * @var \Magento\Framework\DB\TransactionFactory
+     * @var TransactionFactory
      */
     protected $_transactionFactory;
 
     /**
-     * @var  \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @var  StoreManagerInterface $storeManager
      */
     protected $_storeManager;
     /**
-     * @var \Payout\Payment\Model\Payout $_paymentMethod
+     * @var Payout $_paymentMethod
      */
     protected $_paymentMethod;
 
     /**
-     * @var \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
+     * @var OrderRepositoryInterface $orderRepository
      */
     protected $orderRepository;
 
     /**
-     * @var \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $_orderCollectionFactory
+     * @var CollectionFactory $_orderCollectionFactory
      */
     protected $_orderCollectionFactory;
 
@@ -136,39 +161,39 @@ abstract class AbstractPayoutm230 extends AppAction implements RedirectLoginInte
     protected $_transactionBuilder;
 
     /**
-     * @param \Magento\Framework\App\Action\Context $context
-     * @param \Magento\Framework\View\Result\PageFactory $pageFactory
+     * @param Context $context
+     * @param PageFactory $pageFactory
      * @param \Magento\Customer\Model\Session $customerSession
-     * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Sales\Model\OrderFactory $orderFactory
-     * @param \Magento\Framework\Session\Generic $payoutSession
-     * @param \Magento\Framework\Url\Helper\Data $urlHelper
-     * @param \Magento\Customer\Model\Url $customerUrl
-     * @param \Magento\Framework\DB\TransactionFactory $transactionFactory
-     * @param \Payout\Payment\Model\Payout $paymentMethod
+     * @param Session $checkoutSession
+     * @param OrderFactory $orderFactory
+     * @param Generic $payoutSession
+     * @param Data $urlHelper
+     * @param Url $customerUrl
+     * @param TransactionFactory $transactionFactory
+     * @param Payout $paymentMethod
      */
     public function __construct(
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Framework\View\Result\PageFactory $pageFactory,
+        Context $context,
+        PageFactory $pageFactory,
         \Magento\Customer\Model\Session $customerSession,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Sales\Model\OrderFactory $orderFactory,
-        \Magento\Framework\Session\Generic $payoutSession,
-        \Magento\Framework\Url\Helper\Data $urlHelper,
-        \Magento\Customer\Model\Url $customerUrl,
-        \Psr\Log\LoggerInterface $logger,
-        \Payout\Payment\Logger\Logger $payoutlogger,
-        \Magento\Framework\DB\TransactionFactory $transactionFactory,
-        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
-        \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
-        \Payout\Payment\Model\Payout $paymentMethod,
-        \Magento\Framework\UrlInterface $urlBuilder,
-        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $OrderSender,
-        \Magento\Framework\Stdlib\DateTime\DateTime $date,
-        \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $orderCollectionFactory,
-        \Magento\Sales\Model\Order\Payment\Transaction\Builder $_transactionBuilder
+        Session $checkoutSession,
+        OrderFactory $orderFactory,
+        Generic $payoutSession,
+        Data $urlHelper,
+        Url $customerUrl,
+        LoggerInterface $logger,
+        Logger $payoutlogger,
+        TransactionFactory $transactionFactory,
+        InvoiceService $invoiceService,
+        InvoiceSender $invoiceSender,
+        Payout $paymentMethod,
+        UrlInterface $urlBuilder,
+        OrderRepositoryInterface $orderRepository,
+        StoreManagerInterface $storeManager,
+        OrderSender $OrderSender,
+        DateTime $date,
+        CollectionFactory $orderCollectionFactory,
+        Builder $_transactionBuilder
     ) {
         $pre = __METHOD__ . " : ";
 
@@ -289,7 +314,7 @@ abstract class AbstractPayoutm230 extends AppAction implements RedirectLoginInte
      * Instantiate
      *
      * @return void
-     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws LocalizedException
      */
     protected function _initCheckout()
     {
@@ -299,12 +324,12 @@ abstract class AbstractPayoutm230 extends AppAction implements RedirectLoginInte
 
         if ( ! $this->_order->getId()) {
             $this->getResponse()->setStatusHeader(404, '1.1', 'Not found');
-            throw new \Magento\Framework\Exception\LocalizedException(__('We could not find "Order" for processing'));
+            throw new LocalizedException(__('We could not find "Order" for processing'));
         }
 
-        if ($this->_order->getState() != \Magento\Sales\Model\Order::STATE_PENDING_PAYMENT) {
+        if ($this->_order->getState() != Order::STATE_PENDING_PAYMENT) {
             $this->_order->setState(
-                \Magento\Sales\Model\Order::STATE_PENDING_PAYMENT
+                Order::STATE_PENDING_PAYMENT
             )->save();
         }
 
@@ -321,7 +346,7 @@ abstract class AbstractPayoutm230 extends AppAction implements RedirectLoginInte
     /**
      * Payout session instance getter
      *
-     * @return \Magento\Framework\Session\Generic
+     * @return Generic
      */
     protected function _getSession()
     {
@@ -331,7 +356,7 @@ abstract class AbstractPayoutm230 extends AppAction implements RedirectLoginInte
     /**
      * Return checkout session object
      *
-     * @return \Magento\Checkout\Model\Session
+     * @return Session
      */
     protected function _getCheckoutSession()
     {
@@ -341,7 +366,7 @@ abstract class AbstractPayoutm230 extends AppAction implements RedirectLoginInte
     /**
      * Return checkout quote object
      *
-     * @return \Magento\Quote\Model\Quote
+     * @return Quote
      */
     protected function _getQuote()
     {

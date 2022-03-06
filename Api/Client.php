@@ -159,9 +159,7 @@ class Client
      */
     public function getCheckout($data)
     {
-        $response = $this->connection()->get('https://sandbox.payout.one/api/v1/', 'checkouts/479551');
-
-        return $response;
+        return $this->connection()->get('https://sandbox.payout.one/api/v1/', 'checkouts/479551');
     }
 
     /**
@@ -212,8 +210,6 @@ class Client
     {
         // TODO use more secure nonce https://secure.php.net/manual/en/function.random-bytes.php
         $bytes = openssl_random_pseudo_bytes(32);
-        $hash  = base64_encode($bytes);
-
-        return $hash;
+        return base64_encode($bytes);
     }
 }

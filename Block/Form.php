@@ -13,7 +13,9 @@ use Magento\Customer\Helper\Session\CurrentCustomer;
 use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
+use Payout\Payment\Helper\Data;
 use Payout\Payment\Model\Config;
+use Payout\Payment\Model\ConfigFactory;
 use Payout\Payment\Model\Payout\Checkout;
 
 class Form extends \Magento\Payment\Block\Form
@@ -24,12 +26,12 @@ class Form extends \Magento\Payment\Block\Form
     protected $_methodCode = Config::METHOD_CODE;
 
     /**
-     * @var \Payout\Payment\Helper\Data
+     * @var Data
      */
     protected $_payoutData;
 
     /**
-     * @var \Payout\Payment\Model\ConfigFactory
+     * @var ConfigFactory
      */
     protected $payoutConfigFactory;
 
@@ -39,7 +41,7 @@ class Form extends \Magento\Payment\Block\Form
     protected $_localeResolver;
 
     /**
-     * @var \Payout\Payment\Model\Config
+     * @var Config
      */
     protected $_config;
 
@@ -55,17 +57,17 @@ class Form extends \Magento\Payment\Block\Form
 
     /**
      * @param Context $context
-     * @param \Payout\Payment\Model\ConfigFactory $payoutConfigFactory
+     * @param ConfigFactory $payoutConfigFactory
      * @param ResolverInterface $localeResolver
-     * @param \Payout\Payment\Helper\Data $payoutData
+     * @param Data $payoutData
      * @param CurrentCustomer $currentCustomer
      * @param array $data
      */
     public function __construct(
         Context $context,
-        \Payout\Payment\Model\ConfigFactory $payoutConfigFactory,
+        ConfigFactory $payoutConfigFactory,
         ResolverInterface $localeResolver,
-        \Payout\Payment\Helper\Data $payoutData,
+        Data $payoutData,
         CurrentCustomer $currentCustomer,
         array $data = []
     ) {

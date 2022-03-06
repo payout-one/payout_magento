@@ -9,13 +9,19 @@
 
 namespace Payout\Payment\Controller\Redirect;
 
+use Magento\Framework\App\ObjectManager;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Sales\Model\Order\Invoice;
+use Magento\Sales\Model\Order\Payment\Transaction;
+use Payout\Payment\Controller\AbstractPayout;
+
 /**
  * Responsible for loading page content.
  *
  * This is a basic controller that only loads the corresponding layout file. It may duplicate other such
  * controllers, and thus it is considered tech debt. This code duplication will be resolved in future releases.
  */
-class Success extends \Payout\Payment\Controller\AbstractPayout
+class Success extends AbstractPayout
 {
     /**
      * Execute on Payout/redirect/success
@@ -68,7 +74,7 @@ class Success extends \Payout\Payment\Controller\AbstractPayout
 
                     // Capture invoice when payment is successfull
                     $invoice = $this->_invoiceService->prepareInvoice($order);
-                    $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                    $invoice->setRequestedCaptureCase(Invoice::CAPTURE_ONLINE);
                     $invoice->register();
 
                     // Save the invoice to the order
@@ -101,7 +107,7 @@ class Success extends \Payout\Payment\Controller\AbstractPayout
                     $this->createTransaction($order, $notification);
                 }
             }
-        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+        } catch (LocalizedException $e) {
             // Save Transaction Response
             $this->createTransaction($order, $notification);
             $this->_logger->error($pre . $e->getMessage());
@@ -134,7 +140,7 @@ class Success extends \Payout\Payment\Controller\AbstractPayout
             $payment->setLastTransId($checkoutId)
                     ->setTransactionId($checkoutId)
                     ->setAdditionalInformation(
-                        [\Magento\Sales\Model\Order\Payment\Transaction::RAW_DETAILS => $PayoutResponse]
+                        [Transaction::RAW_DETAILS => $PayoutResponse]
                     );
             $formatedPrice = $order->getBaseCurrency()->formatTxt(
                 $order->getGrandTotal()
@@ -147,11 +153,11 @@ class Success extends \Payout\Payment\Controller\AbstractPayout
                                  ->setOrder($order)
                                  ->setTransactionId($checkoutId)
                                  ->setAdditionalInformation(
-                                     [\Magento\Sales\Model\Order\Payment\Transaction::RAW_DETAILS => $PayoutResponse]
+                                     [Transaction::RAW_DETAILS => $PayoutResponse]
                                  )
                                  ->setFailSafe(true)
                 //build method creates the transaction and returns the object
-                                 ->build(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_CAPTURE);
+                                 ->build(Transaction::TYPE_CAPTURE);
 
             $payment->addTransactionCommentsToOrder(
                 $transaction,
@@ -169,7 +175,7 @@ class Success extends \Payout\Payment\Controller\AbstractPayout
 
     public function getOrderByIncrementId($incrementId)
     {
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $objectManager = ObjectManager::getInstance();
         $order         = $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
 
         return $order;

@@ -9,10 +9,18 @@
 
 namespace Payout\Payment\Helper;
 
+use Magento\Framework\App\Config\BaseFactory;
+use Magento\Framework\App\Helper\AbstractHelper;
+use Magento\Framework\App\Helper\Context;
+use Magento\Quote\Model\Quote;
+use Magento\Store\Model\Store;
+use Payout\Payment\Model\ConfigFactory;
+use Psr\Log\LoggerInterface;
+
 /**
  * Payout Data helper
  */
-class Data extends \Magento\Framework\App\Helper\AbstractHelper
+class Data extends AbstractHelper
 {
     /**
      * Cache for shouldAskToCreateBillingAgreement()
@@ -26,7 +34,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     protected $_paymentData;
     /**
-     * @var \Psr\Log\LoggerInterface
+     * @var LoggerInterface
      */
     protected $_logger;
     /**
@@ -34,20 +42,20 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     private $methodCodes;
     /**
-     * @var \Payout\Payment\Model\ConfigFactory
+     * @var ConfigFactory
      */
     private $configFactory;
 
     /**
-     * @param \Magento\Framework\App\Helper\Context $context
+     * @param Context $context
      * @param \Magento\Payment\Helper\Data $paymentData
-     * @param \Magento\Framework\App\Config\BaseFactory $configFactory
+     * @param BaseFactory $configFactory
      * @param array $methodCodes
      */
     public function __construct(
-        \Magento\Framework\App\Helper\Context $context,
+        Context $context,
         \Magento\Payment\Helper\Data $paymentData,
-        \Magento\Framework\App\Config\BaseFactory $configFactory,
+        BaseFactory $configFactory,
         array $methodCodes
     ) {
         $this->_logger = $context->getLogger();
@@ -81,8 +89,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     /**
      * Retrieve available billing agreement methods
      *
-     * @param null|string|bool|int|\Magento\Store\Model\Store $store
-     * @param \Magento\Quote\Model\Quote|null $quote
+     * @param null|string|bool|int|Store $store
+     * @param Quote|null $quote
      *
      * @return MethodInterface[]
      */

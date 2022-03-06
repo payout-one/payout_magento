@@ -16,7 +16,9 @@ use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Asset\Repository;
 use Magento\Payment\Helper\Data as PaymentHelper;
+use Magento\Payment\Model\Method\AbstractMethod;
 use Payout\Payment\Helper\Data as PayoutHelper;
+use Psr\Log\LoggerInterface;
 
 class PayoutConfigProvider implements ConfigProviderInterface
 {
@@ -31,12 +33,12 @@ class PayoutConfigProvider implements ConfigProviderInterface
     protected $config;
 
     /**
-     * @var \Magento\Customer\Helper\Session\CurrentCustomer
+     * @var CurrentCustomer
      */
     protected $currentCustomer;
 
     /**
-     * @var \Psr\Log\LoggerInterface
+     * @var LoggerInterface
      */
     protected $_logger;
 
@@ -48,7 +50,7 @@ class PayoutConfigProvider implements ConfigProviderInterface
     ];
 
     /**
-     * @var \Magento\Payment\Model\Method\AbstractMethod[]
+     * @var AbstractMethod[]
      */
     protected $methods = [];
 
@@ -84,7 +86,7 @@ class PayoutConfigProvider implements ConfigProviderInterface
      * @param PaymentHelper $paymentHelper
      */
     public function __construct(
-        \Psr\Log\LoggerInterface $logger,
+        LoggerInterface $logger,
         ConfigFactory $configFactory,
         ResolverInterface $localeResolver,
         CurrentCustomer $currentCustomer,
