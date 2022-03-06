@@ -148,22 +148,17 @@ class Connection
      */
     public function get($url, $query = false)
     {
-        //$url = "https://sandbox.payout.one/api/v1/";
+
         $this->addHeader('Authorization', 'Bearer ' . $this->token);
         $this->initializeRequest();
 
-        if (is_array($query)) {
-            $url .= '?' . http_build_query($query);
-        }
-        $this->base_url . $query;
-        $url = $url . 'checkouts/1000004414';
         curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'GET');
         curl_setopt($this->curl, CURLOPT_URL, $this->base_url . $query);
         curl_setopt($this->curl, CURLOPT_POST, false);
         curl_setopt($this->curl, CURLOPT_PUT, false);
         curl_setopt($this->curl, CURLOPT_HTTPGET, true);
 
-        $resp = curl_exec($this->curl);
+        curl_exec($this->curl);
 
         return $this->handleResponse();
     }
