@@ -328,29 +328,6 @@ class Payout extends AbstractMethod
     }
 
     /**
-     * Whether method is available for specified currency
-     *
-     * @param string $currencyCode
-     *
-     * @return bool
-     */
-    public function canUseForCurrency($currencyCode)
-    {
-        return $this->_config->isCurrencyCodeSupported($currencyCode);
-    }
-
-    /**
-     * Payment action getter compatible with payment model
-     *
-     * @return string
-     * @see \Magento\Sales\Model\Payment::place()
-     */
-    public function getConfigPaymentAction()
-    {
-        return $this->_config->getPaymentAction();
-    }
-
-    /**
      * Check whether payment method can be used
      *
      * @param CartInterface|Quote|null $quote

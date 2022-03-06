@@ -45,14 +45,6 @@ class Config extends AbstractConfig
      */
     protected $_storeManager;
 
-    protected $_supportedBuyerCountryCodes = ['ZA'];
-
-    /**
-     * Currency codes supported by Payout methods
-     * @var string[]
-     */
-    protected $_supportedCurrencyCodes = ['USD', 'EUR', 'GPD', 'ZAR'];
-
     /**
      * @var LoggerInterface
      */
@@ -112,16 +104,6 @@ class Config extends AbstractConfig
     public function isMethodAvailable($methodCode = null)
     {
         return parent::isMethodAvailable($methodCode);
-    }
-
-    /**
-     * Return buyer country codes supported by Payout
-     *
-     * @return string[]
-     */
-    public function getSupportedBuyerCountryCodes()
-    {
-        return $this->_supportedBuyerCountryCodes;
     }
 
     /**
