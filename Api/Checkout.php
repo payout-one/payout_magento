@@ -45,7 +45,7 @@ class Checkout
      * @return array
      * @throws Exception
      */
-    public function create($data)
+    public function create($data): array
     {
         if ( ! is_array($data)) {
             throw new Exception('Payout error: Wrong checkout parameters.');

@@ -11,6 +11,7 @@ namespace Payout\Payment\Controller\Redirect;
 
 use Exception;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
 use Payout\Payment\Controller\AbstractPayout;
 use Payout\Payment\Model\Config;
@@ -26,19 +27,19 @@ class Index extends AbstractPayout
     /**
      * @var PageFactory
      */
-    protected $resultPageFactory;
+    protected PageFactory $resultPageFactory;
 
     /**
      * Config method type
      *
      * @var string
      */
-    protected $_configMethod = Config::METHOD_CODE;
+//    protected string $_configMethod = Config::METHOD_CODE;
 
     /**
      * Execute
      */
-    public function execute()
+    public function execute(): Page
     {
         $pre = __METHOD__ . " : ";
 
@@ -57,14 +58,8 @@ class Index extends AbstractPayout
         }
 
         $block = $page_object->getLayout()
-                             ->getBlock('Payout')
-                             ->setPaymentFormData(isset($order) ? $order : null);
-
-        $formData = $block->getFormData();
-        if ( ! $formData) {
-            $this->_logger->error("We can\'t start Payout Checkout.");
-            $this->_redirect('checkout/cart');
-        }
+            ->getBlock('Payout')
+            ->setPaymentFormData($order ?? null);
 
         return $page_object;
     }

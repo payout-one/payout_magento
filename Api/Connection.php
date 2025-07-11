@@ -25,6 +25,7 @@
 
 namespace Payout\Payment\Api;
 
+use CurlHandle;
 use Exception;
 
 /**
@@ -37,7 +38,7 @@ use Exception;
  */
 class Connection
 {
-    const TYPE_JSON = 'application/json';
+    const string TYPE_JSON = 'application/json';
 
     /**
      * @var string $base_url API base URL
@@ -45,27 +46,31 @@ class Connection
      * @var array $headers HTTP request headers
      * @var mixed $response HTTP response
      */
-    private $base_url, $token, $curl, $headers = array(), $response;
+    private string $base_url;
+    private string $token;
+    private CurlHandle|false $curl;
+    private array $headers = array();
+    private mixed $response;
 
     /**
      * Connection constructor.
      *
      * @param string $base_url
      */
-    public function __construct($base_url)
+    public function __construct(string $base_url)
     {
         $this->base_url = $base_url;
-        $this->curl     = curl_init();
+        $this->curl = curl_init();
 
         curl_setopt_array(
             $this->curl,
             array(
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING       => '',
-                CURLOPT_MAXREDIRS      => 10,
-                CURLOPT_TIMEOUT        => 0,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
                 CURLOPT_FOLLOWLOCATION => false,
-                CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1
             )
         );
     }
@@ -76,7 +81,7 @@ class Connection
      * @param string $header HTTP request field name
      * @param string $value HTTP request field value
      */
-    public function addHeader($header, $value)
+    public function addHeader(string $header, string $value): void
     {
         $this->headers[$header] = "$header: $value";
     }
@@ -92,13 +97,13 @@ class Connection
      * @return mixed
      * @throws Exception
      */
-    public function authenticate($url, $client_id, $client_secret)
+    public function authenticate(string $url, string $client_id, string $client_secret): mixed
     {
         $this->initializeRequest();
 
         $credentials = json_encode(
             array(
-                'client_id'     => $client_id,
+                'client_id' => $client_id,
                 'client_secret' => $client_secret
             )
         );
@@ -125,7 +130,7 @@ class Connection
         $this->addHeader('Authorization', 'Bearer ' . $this->token);
         $this->initializeRequest();
 
-        if ( ! is_string($body)) {
+        if (!is_string($body)) {
             $body = json_encode($body);
         }
 
@@ -141,12 +146,11 @@ class Connection
      * Make an HTTP GET request to the specified endpoint.
      *
      * @param string $url URL to retrieve
-     * @param array|bool $query Optional array of query string parameters
-     *
+     * @param string $query Optional array of query string parameters
      * @return mixed
      * @throws Exception
      */
-    public function get($url, $query = false)
+    public function get(string $url, string $query = ''): mixed
     {
 
         $this->addHeader('Authorization', 'Bearer ' . $this->token);
@@ -167,7 +171,7 @@ class Connection
      * Clear previously cached request data and prepare for
      * making a fresh request.
      */
-    private function initializeRequest()
+    private function initializeRequest(): void
     {
         $this->response = '';
         $this->addHeader('Content-Type', self::TYPE_JSON);
@@ -182,7 +186,7 @@ class Connection
      * @return mixed the value encoded in json in appropriate PHP type.
      * @throws Exception
      */
-    private function handleResponse()
+    private function handleResponse(): mixed
     {
         if (curl_error($this->curl)) {
             throw new Exception('Payout error: ' . curl_error($this->curl));
@@ -191,7 +195,7 @@ class Connection
         $response = json_decode($this->response);
 
         if (isset($response->errors)) {
-            throw new Exception('Payout error: ' . $response->errors);
+            throw new Exception('Payout error: ' . json_encode($response->errors));
         }
 
         if (isset($response->token)) {

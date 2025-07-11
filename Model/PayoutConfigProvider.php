@@ -25,59 +25,59 @@ class PayoutConfigProvider implements ConfigProviderInterface
     /**
      * @var ResolverInterface
      */
-    protected $localeResolver;
+    protected ResolverInterface $localeResolver;
 
     /**
      * @var Config
      */
-    protected $config;
+    protected Config $config;
 
     /**
      * @var CurrentCustomer
      */
-    protected $currentCustomer;
+    protected CurrentCustomer $currentCustomer;
 
     /**
      * @var LoggerInterface
      */
-    protected $_logger;
+    protected LoggerInterface $_logger;
 
     /**
      * @var string[]
      */
-    protected $methodCodes = [
+    protected array $methodCodes = [
         Config::METHOD_CODE,
     ];
 
     /**
      * @var AbstractMethod[]
      */
-    protected $methods = [];
+    protected array $methods = [];
 
     /**
-     * @var PaygateHelper
+     * @var PaygateHelper|PayoutHelper
      */
-    protected $payoutHelper;
+    protected PaygateHelper|PayoutHelper $payoutHelper;
 
     /**
      * @var PaymentHelper
      */
-    protected $paymentHelper;
+    protected PaymentHelper $paymentHelper;
 
     /**
      * @var Repository
      */
-    protected $assetRepo;
+    protected Repository $assetRepo;
 
     /**
      * @var UrlInterface
      */
-    protected $urlBuilder;
+    protected UrlInterface $urlBuilder;
 
     /**
      * @var RequestInterface
      */
-    protected $request;
+    protected RequestInterface $request;
 
     /**
      * @param ConfigFactory $configFactory
@@ -119,7 +119,7 @@ class PayoutConfigProvider implements ConfigProviderInterface
     /**
      * {@inheritdoc}
      */
-    public function getConfig()
+    public function getConfig(): array
     {
         $pre = __METHOD__ . ' : ';
 
@@ -153,7 +153,7 @@ class PayoutConfigProvider implements ConfigProviderInterface
      *
      * @return string
      */
-    public function getViewFileUrl($fileId, array $params = [])
+    public function getViewFileUrl(string $fileId, array $params = []): string
     {
         try {
             $params = array_merge(['_secure' => $this->request->isSecure()], $params);
@@ -173,7 +173,7 @@ class PayoutConfigProvider implements ConfigProviderInterface
      *
      * @return mixed
      */
-    protected function getMethodRedirectUrl($code)
+    protected function getMethodRedirectUrl(string $code): mixed
     {
         $pre = __METHOD__ . ' : ';
         $this->_logger->debug($pre . 'bof');
@@ -192,7 +192,7 @@ class PayoutConfigProvider implements ConfigProviderInterface
      *
      * @return null|string
      */
-    protected function getBillingAgreementCode($code)
+    protected function getBillingAgreementCode(string $code): ?string
     {
         $pre = __METHOD__ . ' : ';
         $this->_logger->debug($pre . 'bof');

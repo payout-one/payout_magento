@@ -23,27 +23,27 @@ class Request extends Template
     /**
      * @var Payout $_paymentMethod
      */
-    protected $_paymentMethod;
+    protected Payout $_paymentMethod;
 
     /**
      * @var OrderFactory
      */
-    protected $_orderFactory;
+    protected OrderFactory $_orderFactory;
 
     /**
      * @var Session
      */
-    protected $_checkoutSession;
+    protected Session $_checkoutSession;
 
     /**
      * @var ReadFactory $readFactory
      */
-    protected $readFactory;
+    protected ReadFactory $readFactory;
 
     /**
      * @var Reader $reader
      */
-    protected $reader;
+    protected Reader $reader;
 
     /**
      * @param Context $context
@@ -72,14 +72,14 @@ class Request extends Template
         $this->_paymentMethod  = $paymentMethod;
     }
 
-    public function _prepareLayout()
+    public function _prepareLayout(): Request
     {
         $this->setMessage('Redirecting to Payout')
              ->setId('payout_checkout')
              ->setName('payout_checkout')
              ->setFormMethod('POST')
              ->setFormAction($this->_paymentMethod->getStandardCheckoutFormFields())
-             ->setFormData($this->_paymentMethod->getStandardCheckoutFormFields())
+             ->setFormData([])
              ->setSubmitForm(
                  '<script type="text/javascript">document.getElementById( "payout_checkout" ).submit();</script>'
              );

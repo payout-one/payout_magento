@@ -27,12 +27,12 @@ class Data extends AbstractHelper
      *
      * @var bool
      */
-    protected static $_shouldAskToCreateBillingAgreement = false;
+    protected static bool $_shouldAskToCreateBillingAgreement = false;
 
     /**
      * @var \Magento\Payment\Helper\Data
      */
-    protected $_paymentData;
+    protected \Magento\Payment\Helper\Data $_paymentData;
     /**
      * @var LoggerInterface
      */
@@ -40,11 +40,11 @@ class Data extends AbstractHelper
     /**
      * @var array
      */
-    private $methodCodes;
+    private array $methodCodes;
     /**
-     * @var ConfigFactory
+     * @var ConfigFactory|BaseFactory
      */
-    private $configFactory;
+    private ConfigFactory|BaseFactory $configFactory;
 
     /**
      * @param Context $context
@@ -77,7 +77,7 @@ class Data extends AbstractHelper
      *
      * @return bool
      */
-    public function shouldAskToCreateBillingAgreement()
+    public function shouldAskToCreateBillingAgreement(): bool
     {
         $pre = __METHOD__ . " : ";
         $this->_logger->debug($pre . "bof");
@@ -89,12 +89,12 @@ class Data extends AbstractHelper
     /**
      * Retrieve available billing agreement methods
      *
-     * @param null|string|bool|int|Store $store
+     * @param bool|int|string|Store|null $store
      * @param Quote|null $quote
      *
      * @return MethodInterface[]
      */
-    public function getBillingAgreementMethods($store = null, $quote = null)
+    public function getBillingAgreementMethods(Store|bool|int|string $store = null, Quote|null $quote = null): array
     {
         $pre = __METHOD__ . " : ";
         $this->_logger->debug($pre . 'bof');

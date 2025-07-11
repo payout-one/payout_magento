@@ -9,8 +9,4 @@
 
 namespace Payout\Payment\Controller;
 
-if (interface_exists("Magento\Framework\App\CsrfAwareActionInterface")) {
-    class_alias('Payout\Payment\Controller\AbstractPayoutm230', 'Payout\Payment\Controller\AbstractPayout');
-} else {
-    class_alias('Payout\Payment\Controller\AbstractPayoutm220', 'Payout\Payment\Controller\AbstractPayout');
-}
+class_alias('Payout\Payment\Controller\AbstractPayoutm240', 'Payout\Payment\Controller\AbstractPayout');
