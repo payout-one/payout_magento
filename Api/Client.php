@@ -98,11 +98,11 @@ class Client
      *
      * @return bool
      */
-    public function verifySignature($message, $signature)
+    public static function verifySignature(array $message, string $secret, string $signature): bool
     {
-        $message[] = $this->config['client_secret'];
+        $message[] = $secret;
 
-        if (strcmp($this->getSignature($message), $signature) == 0) {
+        if (strcmp(self::getSignature($message), $signature) == 0) {
             return true;
         } else {
             return false;
@@ -134,15 +134,21 @@ class Client
             $this->config['client_secret']
         );
 
-        $signature                      = $this->getSignature($message);
+        $signature = self::getSignature($message);
         $prepared_checkout['signature'] = $signature;
 
         $prepared_checkout = json_encode($prepared_checkout);
 
-        $response = $this->connection()->post('checkouts', $prepared_checkout);
+        $headers = [];
+        if (isset($data['idempotency_key'])) {
+            $headers['Idempotency-Key'] = $data['idempotency_key'];
+        }
 
-        if ( ! $this->verifySignature(
+        $response = $this->connection()->post('checkouts', $prepared_checkout, $headers);
+
+        if (!self::verifySignature(
             array($response->amount, $response->currency, $response->external_id, $response->nonce),
+            $this->config['client_secret'],
             $response->signature
         )) {
             throw new Exception('Payout error: Invalid signature in API response.');
@@ -194,7 +200,7 @@ class Client
      *
      * @return string
      */
-    private function getSignature($message)
+    private static function getSignature($message): string
     {
         $message = implode('|', $message);
 

@@ -29,6 +29,7 @@ use Magento\Sales\Api\Data\OrderPaymentInterface;
 use Magento\Sales\Api\Data\TransactionInterface;
 use Magento\Sales\Api\TransactionRepositoryInterface;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Address;
 use Magento\Sales\Model\Order\Payment;
 use Magento\Sales\Model\Order\Payment\Transaction;
 use Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface;
@@ -347,39 +348,64 @@ class Payout extends AbstractMethod
 
     /**
      * This is where we compile data posted by the form to Payout
-     * @return array
+     * @return string
      */
-    public function getStandardCheckoutFormFields()
+    public function getStandardCheckoutFormFields(): string
     {
         $order = $this->_checkoutSession->getLastRealOrder();
-        $pre   = __METHOD__ . ' : ';
+        $pre = __METHOD__ . ' : ';
 
         $clientId = $this->getConfigData('payout_id');
-        $secret   = $this->getConfigData('encryption_key');
+        $secret = $this->getConfigData('encryption_key');
+        $testMode = $this->getConfigData('test_mode');
 
         $config = array(
-            'client_id'     => $clientId,
+            'client_id' => $clientId,
             'client_secret' => $secret,
-            'sandbox'       => true
+            'sandbox' => (bool)$testMode
         );
 
         $payout = new PayoutClient($config);
 
         $externalId = $order->getIncrementId();
 
+        $items = [];
+
+        foreach ($order->getAllItems() as $item) {
+            if ((float)$item->getPriceInclTax() > 0) {
+                $items[] = [
+                    'name' => $item->getName(),
+                    'unit_price' => "" . intval(round((float)$item->getPriceInclTax() * 100)),
+                    'quantity' => (int)$item->getQtyOrdered(),
+                ];
+            }
+        }
+
+        if ((float)$order->getShippingInclTax() > 0) {
+            $items[] = [
+                'name' => 'shipping cost',
+                'unit_price' => "" . intval(round((float)$order->getShippingInclTax() * 100)),
+                'quantity' => 1,
+            ];
+        }
+
         $checkout_data = array(
-            'amount'       => $order->getGrandTotal(),
-            'currency'     => $order->getOrderCurrencyCode(),
-            'customer'     => [
+            'amount' => $order->getGrandTotal(),
+            'currency' => $order->getOrderCurrencyCode(),
+            'customer' => [
                 'first_name' => $order->getCustomerFirstname(),
-                'last_name'  => $order->getCustomerLastname(),
-                'email'      => $order->getCustomerEmail()
+                'last_name' => $order->getCustomerLastname(),
+                'email' => $order->getCustomerEmail()
             ],
-            'external_id'  => $order->getIncrementId(),
+            'products' => $items,
+            'billing_address' => $this->createCheckoutAddress($order->getBillingAddress()),
+            'shipping_address' => $this->createCheckoutAddress($order->getShippingAddress()),
+            'external_id' => $order->getIncrementId(),
             'redirect_url' => $this->_urlBuilder->getUrl(
                     'Payout/redirect/order',
                     array('_secure' => true)
                 ) . '?form_key=' . $this->_formKey->getFormKey() . '&gid=' . $order->getRealOrderId(),
+            'idempotency_key' => $order->getPayment()->getEntityId(),
         );
 
 
@@ -388,11 +414,52 @@ class Payout extends AbstractMethod
 
         $response = $payout->createCheckout($checkout_data);
 
+        $order->getPayment()
+            ->setLastTransId($response->id)
+            ->setTransactionId($response->id)
+            ->setAdditionalInformation(
+                [Transaction::RAW_DETAILS =>
+                    [
+                        'checkout_id' => $response->id,
+                        'order_id' => $response->external_id,
+                        'amount' => $response->amount,
+                        'currency' => $response->currency,
+                        'customer_email' => $response->customer->email,
+                        'first_name' => $response->customer->first_name,
+                        'last_name' => $response->customer->last_name,
+                        'nonce' => $response->nonce,
+                        'signature' => $response->signature,
+                        'raw_data' => json_encode($response),
+                        'source' => 'checkout_response',
+                    ]
+                ]
+            )
+            ->save();
+
         $this->_payoutlogger->info("***********************Token Validation from Payout*************************");
 
         $this->_payoutlogger->info(json_encode($response));
 
         return $response->checkout_url;
+    }
+
+    /**
+     * create payout checkout address from magento address
+     *
+     * @param Address $address
+     *
+     * @return array
+     */
+    private function createCheckoutAddress(Address $address): array
+    {
+        return [
+            'name' => $address->getFirstname() . ' ' . $address->getLastname(),
+            'address_line_1' => $address->getStreetLine(1),
+            'address_line_2' => $address->getStreetLine(2),
+            'postal_code' => $address->getPostcode(),
+            'country_code' => $address->getCountryId(),
+            'city' => $address->getCity(),
+        ];
     }
 
     /**

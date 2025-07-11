@@ -87,6 +87,19 @@ class Connection
     }
 
     /**
+     * remove header.
+     *
+     * @param string $header HTTP request field name
+     * @param string $value HTTP request field value
+     */
+    private function removeHeader(string $header, string $value): void
+    {
+        if ($index = array_search("$header: $value", $this->headers)) {
+            unset($this->headers[$index]);
+        }
+    }
+
+    /**
      * Authenticate API connection. Make an HTTP POST request to the
      * authorization endpoint  and obtain access token.
      *
@@ -125,9 +138,12 @@ class Connection
      * @return mixed
      * @throws Exception
      */
-    public function post($url, $body)
+    public function post(string $url, mixed $body, array $headers = []): mixed
     {
         $this->addHeader('Authorization', 'Bearer ' . $this->token);
+        foreach ($headers as $key => $header) {
+            $this->addHeader($key, $header);
+        }
         $this->initializeRequest();
 
         if (!is_string($body)) {
@@ -138,6 +154,11 @@ class Connection
         curl_setopt($this->curl, CURLOPT_POSTFIELDS, $body);
 
         $this->response = curl_exec($this->curl);
+
+        foreach ($headers as $key => $header) {
+            $this->removeHeader($key, $header);
+        }
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, $this->headers);
 
         return $this->handleResponse();
     }

@@ -13,6 +13,7 @@ use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Payment\Transaction;
+use Payout\Payment\Api\Client;
 use Payout\Payment\Controller\AbstractPayout;
 
 /**
@@ -26,16 +27,32 @@ class Success extends AbstractPayout
     /**
      * Execute on Payout/redirect/success
      */
-    public function execute()
+    public function execute(): void
     {
         $notification = json_decode(file_get_contents('php://input'));
 
         $this->_payoutlogger->info("*************************Payout Notify Response*************************");
         $this->_payoutlogger->info(json_encode($notification));
-        if ( ! isset($notification->external_id)) {
+
+        $payoutSecret = $this->getConfigData('encryption_key');
+
+        if (!isset($notification->external_id) || empty($payoutSecret)) {
             return;
         }
 
+        if (
+            !Client::verifySignature(
+                [
+                    $notification->external_id,
+                    $notification->type,
+                    $notification->nonce,
+                ],
+                $payoutSecret,
+                $notification->signature
+            )
+        ) {
+            return;
+        }
 
         $external_id = $notification->external_id;
 
@@ -45,11 +62,26 @@ class Success extends AbstractPayout
         $this->_logger->debug($pre . 'bof');
 
         $page_object = $this->pageFactory->create();
-        $baseurl     = $this->_storeManager->getStore()->getBaseUrl();
+        $baseurl = $this->_storeManager->getStore()->getBaseUrl();
+
         try {
-            if (isset($notification->data->status)) {
+            if (isset($notification->data->status) && $order->getId() != null && $order->getPayment()->getMethod() == "payout") {
                 $status = $notification->data->status;
                 if ($status == "succeeded") {
+                    $objectManager = ObjectManager::getInstance();
+                    $transactions = $objectManager->create('\Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory')->create()->addOrderIdFilter($order->getId());
+                    foreach ($transactions->getItems() as $transaction) {
+                        $transactionAdditionalInformation = $transaction->getAdditionalInformation();
+                        if (
+                            isset($transactionAdditionalInformation['raw_details_info']['checkout_id'])
+                            && isset($transactionAdditionalInformation['raw_details_info']['source'])
+                            && $transactionAdditionalInformation['raw_details_info']['checkout_id'] == $notification->data->id
+                            && $transactionAdditionalInformation['raw_details_info']['source'] == "webhook"
+                        ) {
+                            return;
+                        }
+                    }
+
                     $status = \Magento\Sales\Model\Order::STATE_PROCESSING;
                     if ($this->getConfigData('Successful_Order_status') != "") {
                         $status = $this->getConfigData('Successful_Order_status');
@@ -62,7 +94,7 @@ class Success extends AbstractPayout
                     $order->addStatusHistoryComment(__($message))->save();
 
 
-                    $model                  = $this->_paymentMethod;
+                    $model = $this->_paymentMethod;
                     $order_successful_email = $model->getConfigData('order_email');
 
                     if ($order_successful_email != '0') {
@@ -79,8 +111,8 @@ class Success extends AbstractPayout
 
                     // Save the invoice to the order
                     $transaction = $this->_objectManager->create('Magento\Framework\DB\Transaction')
-                                                        ->addObject($invoice)
-                                                        ->addObject($invoice->getOrder());
+                        ->addObject($invoice)
+                        ->addObject($invoice->getOrder());
 
                     $transaction->save();
 
@@ -94,70 +126,59 @@ class Success extends AbstractPayout
                     }
 
                     // Save Transaction Response
-                    $this->createTransaction($order, $notification);
+                    $this->createTransaction($notification, $order);
                     $order->setState($status)->setStatus($status)->save();
-                } else {
-                    $this->_order->addStatusHistoryComment(
-                        __(
-                            'Redirect Response, Transaction has been declined, Payout_Checkout_Id: ' . $notification->data->id
-                        )
-                    )->setIsCustomerNotified(false);
-                    $order->cancel()->save();
-                    // Save Transaction Response
-                    $this->createTransaction($order, $notification);
                 }
             }
         } catch (LocalizedException $e) {
-            // Save Transaction Response
-            $this->createTransaction($order, $notification);
             $this->_logger->error($pre . $e->getMessage());
         }
-
-        return;
     }
 
-    public function createTransaction($order = null, $paymentData)
+    public function createTransaction($paymentData, $order = null): void
     {
-        $PayoutResponse = array(
-            'order_id'       => $paymentData->data->external_id,
-            'amount'         => $paymentData->data->amount,
-            'currency'       => $paymentData->data->currency,
+        $checkoutId = $paymentData->data->id;
+        $additionalData = array(
+            'checkout_id' => $paymentData->data->id,
+            'order_id' => $paymentData->data->external_id,
+            'amount' => $paymentData->data->amount,
+            'currency' => $paymentData->data->currency,
             'customer_email' => $paymentData->data->customer->email,
-            'first_name'     => $paymentData->data->customer->first_name,
-            'last_name'      => $paymentData->data->customer->last_name,
-            'checkout_id'    => $paymentData->data->id,
+            'first_name' => $paymentData->data->customer->first_name,
+            'last_name' => $paymentData->data->customer->last_name,
             'failure_reason' => $paymentData->data->payment->failure_reason,
             'payment_method' => $paymentData->data->payment->payment_method,
-            'nonce'          => $paymentData->nonce,
-            'signature'      => $paymentData->signature,
-            'type'           => $paymentData->type
+            'nonce' => $paymentData->nonce,
+            'signature' => $paymentData->signature,
+            'type' => $paymentData->type,
+            'raw_data' => json_encode($paymentData),
+            'source' => 'webhook',
         );
 
-        $checkoutId = $paymentData->data->id;
         try {
             //get payment object from order object
             $payment = $order->getPayment();
             $payment->setLastTransId($checkoutId)
-                    ->setTransactionId($checkoutId)
-                    ->setAdditionalInformation(
-                        [Transaction::RAW_DETAILS => $PayoutResponse]
-                    );
+                ->setTransactionId($checkoutId)
+                ->setAdditionalInformation(
+                    [Transaction::RAW_DETAILS => $additionalData]
+                );
             $formatedPrice = $order->getBaseCurrency()->formatTxt(
                 $order->getGrandTotal()
             );
 
             $message = __('The authorized amount is %1.', $formatedPrice);
             //get the object of builder class
-            $trans       = $this->_transactionBuilder;
+            $trans = $this->_transactionBuilder;
             $transaction = $trans->setPayment($payment)
-                                 ->setOrder($order)
-                                 ->setTransactionId($checkoutId)
-                                 ->setAdditionalInformation(
-                                     [Transaction::RAW_DETAILS => $PayoutResponse]
-                                 )
-                                 ->setFailSafe(true)
+                ->setOrder($order)
+                ->setTransactionId($checkoutId)
+                ->setAdditionalInformation(
+                    [Transaction::RAW_DETAILS => $additionalData]
+                )
+                ->setFailSafe(true)
                 //build method creates the transaction and returns the object
-                                 ->build(Transaction::TYPE_CAPTURE);
+                ->build(Transaction::TYPE_CAPTURE);
 
             $payment->addTransactionCommentsToOrder(
                 $transaction,
@@ -167,7 +188,7 @@ class Success extends AbstractPayout
             $payment->save();
             $order->save();
 
-            return $transaction->save()->getTransactionId();
+            $transaction->save()->getTransactionId();
         } catch (Exception $e) {
             //log errors here
         }
@@ -176,7 +197,7 @@ class Success extends AbstractPayout
     public function getOrderByIncrementId($incrementId)
     {
         $objectManager = ObjectManager::getInstance();
-        $order         = $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
+        $order = $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
 
         return $order;
     }
