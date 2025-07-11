@@ -400,7 +400,7 @@ class Payout extends AbstractMethod
             'products' => $items,
             'billing_address' => $this->createCheckoutAddress($order->getBillingAddress()),
             'shipping_address' => $this->createCheckoutAddress($order->getShippingAddress()),
-            'external_id' => $order->getIncrementId(),
+            'external_id' => $order->getPayment()->getEntityId(),
             'redirect_url' => $this->_urlBuilder->getUrl(
                     'Payout/redirect/order',
                     array('_secure' => true)
@@ -421,7 +421,8 @@ class Payout extends AbstractMethod
                 [Transaction::RAW_DETAILS =>
                     [
                         'checkout_id' => $response->id,
-                        'order_id' => $response->external_id,
+                        'order_id' => $order->getId(),
+                        'external_id' => $response->external_id,
                         'amount' => $response->amount,
                         'currency' => $response->currency,
                         'customer_email' => $response->customer->email,

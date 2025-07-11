@@ -56,7 +56,7 @@ class Success extends AbstractPayout
 
         $external_id = $notification->external_id;
 
-        $order = $this->getOrderByIncrementId($external_id);
+        $order = $this->getOrderByPaymentId($external_id);
 
         $pre = __METHOD__ . " : ";
         $this->_logger->debug($pre . 'bof');
@@ -140,7 +140,8 @@ class Success extends AbstractPayout
         $checkoutId = $paymentData->data->id;
         $additionalData = array(
             'checkout_id' => $paymentData->data->id,
-            'order_id' => $paymentData->data->external_id,
+            'order_id' => $order->getId(),
+            'external_id' => $paymentData->external_id,
             'amount' => $paymentData->data->amount,
             'currency' => $paymentData->data->currency,
             'customer_email' => $paymentData->data->customer->email,
@@ -194,11 +195,11 @@ class Success extends AbstractPayout
         }
     }
 
-    public function getOrderByIncrementId($incrementId)
+    private function getOrderByPaymentId($paymentId)
     {
         $objectManager = ObjectManager::getInstance();
-        $order = $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
+        $payment = $objectManager->create('Magento\Sales\Model\Order\PaymentFactory')->create()->load($paymentId);
 
-        return $order;
+        return $payment->getOrder();
     }
 }
