@@ -207,7 +207,7 @@ class Webhook extends AbstractPayout
 
             $transaction->save()->getTransactionId();
         } catch (Exception $e) {
-            //log errors here
+            $this->_logger->error(__METHOD__ . " : Error creating payment transaction: " . $e->getMessage());
         }
     }
 
