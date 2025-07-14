@@ -158,19 +158,6 @@ class Client
     }
 
     /**
-     * Verify input data and create checkout and post signed data to API.
-     *
-     * @param array $data
-     *
-     * @return mixed
-     * @throws Exception
-     */
-    public function getCheckout(array $data): mixed
-    {
-        return $this->connection()->get('https://sandbox.payout.one/api/v1/', 'checkouts/479551');
-    }
-
-    /**
      * Get an instance of the HTTP connection object. Initializes
      * the connection if it is not already active.
      * Authorize connection and obtain access token.

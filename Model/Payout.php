@@ -341,11 +341,6 @@ class Payout extends AbstractMethod
         return parent::isAvailable($quote) && $this->_config->isMethodAvailable();
     }
 
-    public function getApiUrl(): string
-    {
-        return "https://sandbox.payout.one";
-    }
-
     /**
      * This is where we compile data posted by the form to Payout
      * @return string

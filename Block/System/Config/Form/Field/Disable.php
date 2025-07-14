@@ -10,7 +10,7 @@ class Disable extends Field
     protected function _getElementHtml(AbstractElement $element): string
     {
         $element->setDisabled('disabled');
-        $url = $this->getBaseUrl() . 'Payout/redirect/success';
+        $url = $this->getBaseUrl() . 'Payout/redirect/webhook';
         $element->setValue($url);
 
         return $element->getElementHtml();
