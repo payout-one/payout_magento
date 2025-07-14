@@ -47,6 +47,9 @@ class Index extends AbstractPayout
 
         try {
             $this->_initCheckout();
+            $block = $page_object->getLayout()
+                ->getBlock('Payout')
+                ->setPaymentFormData($order ?? null);
         } catch (LocalizedException $e) {
             $this->_logger->error($pre . $e->getMessage());
             $this->messageManager->addExceptionMessage($e, $e->getMessage());
@@ -56,10 +59,6 @@ class Index extends AbstractPayout
             $this->messageManager->addExceptionMessage($e, __('We can\'t start Payout Checkout.'));
             $this->_redirect('checkout/cart');
         }
-
-        $block = $page_object->getLayout()
-            ->getBlock('Payout')
-            ->setPaymentFormData($order ?? null);
 
         return $page_object;
     }

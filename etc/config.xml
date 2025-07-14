@@ -4,11 +4,12 @@
  * Copyright (c) 2020 Payout One
  *
  * Author: Web Technology Codes Software Services LLP
- * 
+ *
  * Released under the GNU General Public License
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <payment>
             <payout>
@@ -17,8 +18,9 @@
                 <instructions>Payout payment gateway</instructions>
                 <payment_action>Authorization</payment_action>
                 <test>1</test>
+                <test_mode>1</test_mode>
                 <model>Payout\Payment\Model\Payout</model>
-				<can_authorize_vault>1</can_authorize_vault>
+                <can_authorize_vault>1</can_authorize_vault>
                 <is_gateway>0</is_gateway>
                 <can_order>1</can_order>
                 <can_use_checkout>1</can_use_checkout>
