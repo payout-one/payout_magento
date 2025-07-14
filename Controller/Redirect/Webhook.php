@@ -46,20 +46,20 @@ class Webhook extends AbstractPayout
             return;
         }
 
-//        if (
-//            !Client::verifySignature(
-//                [
-//                    $webhookData->external_id,
-//                    $webhookData->type,
-//                    $webhookData->nonce,
-//                ],
-//                $payoutSecret,
-//                $webhookData->signature
-//            )
-//        ) {
-//            $this->_payoutlogger->error("Webhook error: Signature is not valid");
-//            return;
-//        }
+        if (
+            !Client::verifySignature(
+                [
+                    $webhookData->external_id,
+                    $webhookData->type,
+                    $webhookData->nonce,
+                ],
+                $payoutSecret,
+                $webhookData->signature
+            )
+        ) {
+            $this->_payoutlogger->error("Webhook error: Signature is not valid");
+            return;
+        }
 
         $external_id = $webhookData->external_id;
 
