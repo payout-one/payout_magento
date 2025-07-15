@@ -14,6 +14,9 @@ use Magento\Checkout\Model\Session;
 use Magento\Customer\Model\Url;
 use Magento\Framework\App\Action\Action as AppAction;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\CsrfAwareActionInterface;
+use Magento\Framework\App\Request\InvalidRequestException;
+use Magento\Framework\App\RequestInterface;
 use Magento\Framework\DB\TransactionFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Session\Generic;
@@ -41,122 +44,146 @@ use Psr\Log\LoggerInterface;
  * Checkout Controller
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInterface
+abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInterface, CsrfAwareActionInterface
 {
     /**
      * Internal cache of checkout models
      *
      * @var array
      */
-    protected $_checkoutTypes = [];
+    protected array $_checkoutTypes = [];
 
     /**
      * @var Config
      */
-    protected $_config;
+    protected mixed $_config;
 
     /**
-     * @var Quote
+     * @var Quote|bool
      */
-    protected $_quote = false;
+    protected Quote|bool $_quote = false;
 
     /**
      * Config mode type
      *
      * @var string
      */
-    protected $_configType = 'Payout\Payment\Model\Config';
+    protected string $_configType = 'Payout\Payment\Model\Config';
 
     /** Config method type @var string */
-    protected $_configMethod = Config::METHOD_CODE;
+    protected string $_configMethod = Config::METHOD_CODE;
 
     /**
      * Checkout mode type
      *
      * @var string
      */
-    protected $_checkoutType;
+    protected string $_checkoutType;
 
     /**
      * @var \Magento\Customer\Model\Session
      */
-    protected $_customerSession;
+    protected \Magento\Customer\Model\Session $_customerSession;
 
     /**
      * @var Session $_checkoutSession
      */
-    protected $_checkoutSession;
+    protected Session $_checkoutSession;
 
     /**
      * @var OrderFactory
      */
-    protected $_orderFactory;
+    protected OrderFactory $_orderFactory;
 
     /**
      * @var Generic
      */
-    protected $payoutSession;
+    protected Generic $payoutSession;
 
     /**
-     * @var Helper
+     * @var Helper|Data
      */
-    protected $_urlHelper;
+    protected Helper|Data $_urlHelper;
 
     /**
      * @var Url
      */
-    protected $_customerUrl;
+    protected Url $_customerUrl;
 
     /**
      * @var LoggerInterface
      */
-    protected $_logger;
+    protected LoggerInterface $_logger;
 
     /**
      * Logging instance
      * @var Logger
      */
-    protected $_payoutlogger;
+    protected Logger $_payoutlogger;
 
     /**
      * @var  Order $_order
      */
-    protected $_order;
+    protected Order $_order;
 
     /**
      * @var PageFactory
      */
-    protected $pageFactory;
+    protected PageFactory $pageFactory;
+
+    /**
+     * @var InvoiceService
+     */
+    protected InvoiceService $_invoiceService;
+
+    /**
+     * @var InvoiceSender
+     */
+    protected InvoiceSender $invoiceSender;
+
+    /**
+     * @var OrderSender
+     */
+    protected OrderSender $OrderSender;
 
     /**
      * @var TransactionFactory
      */
-    protected $_transactionFactory;
+    protected TransactionFactory $_transactionFactory;
 
     /**
      * @var  StoreManagerInterface $storeManager
      */
-    protected $_storeManager;
-
+    protected StoreManagerInterface $_storeManager;
     /**
      * @var Payout $_paymentMethod
      */
-    protected $_paymentMethod;
+    protected Payout $_paymentMethod;
+
+    /**
+     * @var UrlInterface
+     */
+    protected UrlInterface $_urlBuilder;
 
     /**
      * @var OrderRepositoryInterface $orderRepository
      */
-    protected $orderRepository;
+    protected OrderRepositoryInterface $orderRepository;
 
     /**
      * @var CollectionFactory $_orderCollectionFactory
      */
-    protected $_orderCollectionFactory;
+    protected CollectionFactory $_orderCollectionFactory;
 
     /**
-     * @var Magento\Sales\Model\Order\Payment\Transaction\Builder $_transactionBuilder
+     * @var Magento\Sales\Model\Order\Payment\Transaction\Builder|Builder $_transactionBuilder
      */
-    protected $_transactionBuilder;
+    protected Magento\Sales\Model\Order\Payment\Transaction\Builder|Builder $_transactionBuilder;
+
+    /**
+     * @var DateTime
+     */
+    protected DateTime $_date;
 
     /**
      * @param Context $context
@@ -229,6 +256,23 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
     }
 
     /**
+     * @inheritDoc
+     */
+    public function createCsrfValidationException(
+        RequestInterface $request
+    ): ?InvalidRequestException {
+        return null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function validateForCsrf(RequestInterface $request): ?bool
+    {
+        return true;
+    }
+
+    /**
      * Custom getter for payment configuration
      *
      * @param string $field i.e payout_id, test_mode
@@ -236,7 +280,7 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
      * @return mixed
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function getConfigData($field)
+    public function getConfigData(string $field): mixed
     {
         return $this->_paymentMethod->getConfigData($field);
     }
@@ -245,16 +289,16 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
      * Returns before_auth_url redirect parameter for customer session
      * @return null
      */
-    public function getCustomerBeforeAuthUrl()
+    public function getCustomerBeforeAuthUrl(): null
     {
-        return;
+        return null;
     }
 
     /**
      * Returns a list of action flags [flag_key] => boolean
      * @return array
      */
-    public function getActionFlagList()
+    public function getActionFlagList(): array
     {
         return [];
     }
@@ -263,7 +307,7 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
      * Returns login url parameter for redirect
      * @return string
      */
-    public function getLoginUrl()
+    public function getLoginUrl(): string
     {
         return $this->_customerUrl->getLoginUrl();
     }
@@ -272,7 +316,7 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
      * Returns action name which requires redirect
      * @return string
      */
-    public function getRedirectActionName()
+    public function getRedirectActionName(): string
     {
         return 'index';
     }
@@ -282,7 +326,7 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
      *
      * @return void
      */
-    public function redirectLogin()
+    public function redirectLogin(): void
     {
         $this->_actionFlag->set('', 'no-dispatch', true);
         $this->_customerSession->setBeforeAuthUrl($this->_redirect->getRefererUrl());
@@ -297,7 +341,7 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
      * @return void
      * @throws LocalizedException
      */
-    protected function _initCheckout()
+    protected function _initCheckout(): void
     {
         $pre = __METHOD__ . " : ";
         $this->_logger->debug($pre . 'bof');
@@ -329,7 +373,7 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
      *
      * @return Generic
      */
-    protected function _getSession()
+    protected function _getSession(): Generic
     {
         return $this->payoutSession;
     }
@@ -339,7 +383,7 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
      *
      * @return Session
      */
-    protected function _getCheckoutSession()
+    protected function _getCheckoutSession(): Session
     {
         return $this->_checkoutSession;
     }
@@ -347,9 +391,9 @@ abstract class AbstractPayoutm220 extends AppAction implements RedirectLoginInte
     /**
      * Return checkout quote object
      *
-     * @return Quote
+     * @return bool|Quote
      */
-    protected function _getQuote()
+    protected function _getQuote(): bool|Quote
     {
         if ( ! $this->_quote) {
             $this->_quote = $this->_getCheckoutSession()->getQuote();

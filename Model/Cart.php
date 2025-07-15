@@ -20,14 +20,14 @@ class Cart extends \Magento\Payment\Model\Cart
     /**
      * @var bool
      */
-    protected $_areAmountsValid = false;
+    protected bool $_areAmountsValid = false;
 
     /**
      * Get shipping, tax, subtotal and discount amounts all together
      *
      * @return array
      */
-    public function getAmounts()
+    public function getAmounts(): array
     {
         $this->_collectItemsAndAmounts();
 
@@ -53,7 +53,7 @@ class Cart extends \Magento\Payment\Model\Cart
      *
      * @return bool
      */
-    public function hasNegativeItemAmount()
+    public function hasNegativeItemAmount(): bool
     {
         foreach ($this->_customItems as $item) {
             if ($item->getAmount() < 0) {
@@ -69,7 +69,7 @@ class Cart extends \Magento\Payment\Model\Cart
      *
      * @return void
      */
-    protected function _calculateCustomItemsSubtotal()
+    protected function _calculateCustomItemsSubtotal(): void
     {
         parent::_calculateCustomItemsSubtotal();
         $this->_applyDiscountTaxCompensationWorkaround($this->_salesModel);
@@ -82,7 +82,7 @@ class Cart extends \Magento\Payment\Model\Cart
      *
      * @return void
      */
-    protected function _validate()
+    protected function _validate(): void
     {
         $areItemsValid          = false;
         $this->_areAmountsValid = false;
@@ -130,7 +130,7 @@ class Cart extends \Magento\Payment\Model\Cart
      *
      * @return void
      */
-    protected function _importItemsFromSalesModel()
+    protected function _importItemsFromSalesModel(): void
     {
         $this->_salesModelItems = [];
 
@@ -195,7 +195,8 @@ class Cart extends \Magento\Payment\Model\Cart
      */
     protected function _applyDiscountTaxCompensationWorkaround(
         SalesModelInterface $salesEntity
-    ) {
+    ): void
+    {
         $dataContainer = $salesEntity->getTaxContainer();
         $this->addTax((double)$dataContainer->getBaseDiscountTaxCompensationAmount());
         $this->addTax((double)$dataContainer->getBaseShippingDiscountTaxCompensationAmnt());

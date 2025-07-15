@@ -29,7 +29,7 @@ class Info
      * @return string
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    protected function _getValue($value, $key)
+    protected function _getValue(string $value, string $key): string
     {
         $label       = '';
         $outputValue = implode(', ', (array)$value);

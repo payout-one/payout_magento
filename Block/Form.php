@@ -11,39 +11,37 @@ namespace Payout\Payment\Block;
 
 use Magento\Customer\Helper\Session\CurrentCustomer;
 use Magento\Framework\Locale\ResolverInterface;
-use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
 use Payout\Payment\Helper\Data;
 use Payout\Payment\Model\Config;
 use Payout\Payment\Model\ConfigFactory;
-use Payout\Payment\Model\Payout\Checkout;
 
 class Form extends \Magento\Payment\Block\Form
 {
     /**
      * @var string Payment method code
      */
-    protected $_methodCode = Config::METHOD_CODE;
+    protected string $_methodCode = Config::METHOD_CODE;
 
     /**
      * @var Data
      */
-    protected $_payoutData;
+    protected Data $_payoutData;
 
     /**
      * @var ConfigFactory
      */
-    protected $payoutConfigFactory;
+    protected ConfigFactory $payoutConfigFactory;
 
     /**
      * @var ResolverInterface
      */
-    protected $_localeResolver;
+    protected ResolverInterface $_localeResolver;
 
     /**
-     * @var Config
+     * @var ?Config
      */
-    protected $_config;
+    protected ?Config $_config;
 
     /**
      * @var bool
@@ -53,7 +51,7 @@ class Form extends \Magento\Payment\Block\Form
     /**
      * @var CurrentCustomer
      */
-    protected $currentCustomer;
+    protected CurrentCustomer $currentCustomer;
 
     /**
      * @param Context $context
@@ -88,7 +86,7 @@ class Form extends \Magento\Payment\Block\Form
      *
      * @return string
      */
-    public function getMethodCode()
+    public function getMethodCode(): string
     {
         $pre = __METHOD__ . " : ";
         $this->_logger->debug($pre . 'bof');
@@ -99,9 +97,9 @@ class Form extends \Magento\Payment\Block\Form
     /**
      * Set template and redirect message
      *
-     * @return null
+     * @return void
      */
-    protected function _construct()
+    protected function _construct(): void
     {
         $pre = __METHOD__ . " : ";
         $this->_logger->debug($pre . 'bof');

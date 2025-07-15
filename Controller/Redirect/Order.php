@@ -10,8 +10,9 @@
 namespace Payout\Payment\Controller\Redirect;
 
 use Magento\Framework\App\ObjectManager;
-use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
+use Magento\Sales\Api\Data\OrderInterface;
 use Payout\Payment\Controller\AbstractPayout;
 use Payout\Payment\Model\Config;
 
@@ -22,28 +23,21 @@ class Order extends AbstractPayout
     /**
      * @var PageFactory
      */
-    protected $resultPageFactory;
-
-    /**
-     * Config method type
-     *
-     * @var string
-     */
-    protected $_configMethod = Config::METHOD_CODE;
+    protected PageFactory $resultPageFactory;
 
     /**
      * Execute
      */
-    public function execute()
+    public function execute(): Page
     {
         $params = $this->getRequest()->getParams();
 
         $orderId = $params['gid'];
-        $order   = $this->getOrderByIncrementId($orderId);
+        $order = $this->getOrderByIncrementId($orderId);
 
         $page_object = $this->pageFactory->create();
-        $order       = $this->getOrderByIncrementId($orderId);
-        if ($order->getStatus() == "Pending Payment") {
+        $order = $this->getOrderByIncrementId($orderId);
+        if ($order->getStatus() == "pending_payment") {
             $this->_redirect('checkout/onepage/failure');
         } else {
             $this->_redirect('checkout/onepage/success');
@@ -52,7 +46,7 @@ class Order extends AbstractPayout
         return $page_object;
     }
 
-    public function getOrder($id)
+    public function getOrder($id): OrderInterface
     {
         return $this->orderRepository->get($id);
     }
@@ -60,7 +54,7 @@ class Order extends AbstractPayout
     public function getOrderByIncrementId($incrementId)
     {
         $objectManager = ObjectManager::getInstance();
-        $order         = $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
+        $order = $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
 
         return $order;
     }

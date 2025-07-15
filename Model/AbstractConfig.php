@@ -33,27 +33,27 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @var ScopeConfigInterface
      */
-    public $_scopeConfig;
+    public ScopeConfigInterface $_scopeConfig;
     /**
      * Current payment method code
      *
      * @var string
      */
-    protected $_methodCode;
+    protected string $_methodCode;
     /**
      * Current store id
      *
      * @var int
      */
-    protected $_storeId;
+    protected int $_storeId;
     /**
      * @var string
      */
-    protected $pathPattern;
+    protected string $pathPattern;
     /**
      * @var MethodInterface
      */
-    protected $methodInstance;
+    protected MethodInterface $methodInstance;
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -69,9 +69,9 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @param MethodInterface $method
      *
-     * @return $this
+     * @return AbstractConfig
      */
-    public function setMethodInstance($method)
+    public function setMethodInstance(MethodInterface $method): AbstractConfig
     {
         $this->methodInstance = $method;
 
@@ -83,9 +83,9 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @param string|MethodInterface $method
      *
-     * @return $this
+     * @return AbstractConfig
      */
-    public function setMethod($method)
+    public function setMethod(MethodInterface|string $method): AbstractConfig
     {
         if ($method instanceof MethodInterface) {
             $this->_methodCode = $method->getCode();
@@ -101,7 +101,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return string
      */
-    public function getMethodCode()
+    public function getMethodCode(): string
     {
         return $this->_methodCode;
     }
@@ -111,9 +111,9 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @param int $storeId
      *
-     * @return $this
+     * @return AbstractConfig
      */
-    public function setStoreId($storeId)
+    public function setStoreId(int $storeId): AbstractConfig
     {
         $this->_storeId = (int)$storeId;
 
@@ -130,7 +130,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function getValue($key, $storeId = null)
+    public function getValue($key, $storeId = null): ?string
     {
         $underscored = strtolower(preg_replace('/(.)([A-Z])/', "$1_$2", $key));
         $path        = $this->_getSpecificConfigPath($underscored);
@@ -156,7 +156,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return void
      */
-    public function setMethodCode($methodCode)
+    public function setMethodCode($methodCode): void
     {
         $this->_methodCode = $methodCode;
     }
@@ -168,7 +168,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return void
      */
-    public function setPathPattern($pathPattern)
+    public function setPathPattern($pathPattern): void
     {
         $this->pathPattern = $pathPattern;
     }
@@ -180,7 +180,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return bool
      */
-    public function isMethodAvailable($methodCode = null)
+    public function isMethodAvailable($methodCode = null): bool
     {
         $methodCode = $methodCode ?: $this->_methodCode;
 
@@ -196,7 +196,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    public function isMethodActive($method)
+    public function isMethodActive(string $method): bool
     {
         switch ($method) {
             case Config::METHOD_CODE:
@@ -233,7 +233,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function isMethodSupportedForCountry($method = null, $countryCode = null)
+    public function isMethodSupportedForCountry(string $method = null, string $countryCode = null): bool
     {
         return true;
     }
@@ -245,7 +245,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return string|null
      */
-    protected function _getSpecificConfigPath($fieldName)
+    protected function _getSpecificConfigPath(string $fieldName): ?string
     {
         if ($this->pathPattern) {
             return sprintf($this->pathPattern, $this->_methodCode, $fieldName);
@@ -262,7 +262,7 @@ abstract class AbstractConfig implements ConfigInterface
      *
      * @return string Modified value or old value
      */
-    protected function _prepareValue($key, $value)
+    protected function _prepareValue(string $key, string $value): string
     {
         return $value;
     }

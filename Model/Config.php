@@ -30,40 +30,40 @@ class Config extends AbstractConfig
 {
 
     /**
-     * @var Payout this is a model which we will use.
+     * @var string Payout this is a model which we will use.
      */
-    const METHOD_CODE = 'payout';
+    const string METHOD_CODE = 'payout';
 
     /**
      * Core
      * data @var Data
      */
-    protected $directoryHelper;
+    protected Data $directoryHelper;
 
     /**
      * @var StoreManagerInterface
      */
-    protected $_storeManager;
+    protected StoreManagerInterface $_storeManager;
 
     /**
      * @var LoggerInterface
      */
-    protected $_logger;
+    protected LoggerInterface $_logger;
 
     /**
      * @var UrlInterface
      */
-    protected $_urlBuilder;
+    protected UrlInterface $_urlBuilder;
 
     /**
      * @var Repository
      */
-    protected $_assetRepo;
+    protected Repository $_assetRepo;
 
     /**
      * @var ScopeConfigInterface
      */
-    protected $scopeConfig;
+    protected ScopeConfigInterface $scopeConfig;
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -101,7 +101,7 @@ class Config extends AbstractConfig
      * @return bool
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    public function isMethodAvailable($methodCode = null)
+    public function isMethodAvailable($methodCode = null): bool
     {
         return parent::isMethodAvailable($methodCode);
     }
@@ -111,7 +111,7 @@ class Config extends AbstractConfig
      *
      * @return string
      */
-    public function getMerchantCountry()
+    public function getMerchantCountry(): string
     {
         return $this->directoryHelper->getDefaultCountry($this->_storeId);
     }
@@ -125,7 +125,7 @@ class Config extends AbstractConfig
      *
      * @return bool
      */
-    public function isMethodSupportedForCountry($method = null, $countryCode = null)
+    public function isMethodSupportedForCountry(string $method = null, string $countryCode = null): bool
     {
         if ($method === null) {
             $method = $this->getMethodCode();
@@ -146,7 +146,7 @@ class Config extends AbstractConfig
      * @return array
      * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
-    public function getCountryMethods($countryCode = null)
+    public function getCountryMethods(string $countryCode = null): array
     {
         $countryMethods = [
             'other' => [
@@ -167,7 +167,7 @@ class Config extends AbstractConfig
      *
      * @return string
      */
-    public function getPaymentMarkImageUrl()
+    public function getPaymentMarkImageUrl(): string
     {
         return $this->_assetRepo->getUrl('Payout_Payment::images/logo.png');
     }
@@ -178,7 +178,7 @@ class Config extends AbstractConfig
      *
      * @return string
      */
-    public function getPaymentMarkWhatIsPayout()
+    public function getPaymentMarkWhatIsPayout(): string
     {
         return 'Payout Payment gateway';
     }
@@ -188,7 +188,7 @@ class Config extends AbstractConfig
      *
      * @return string|null
      */
-    public function getPaymentAction()
+    public function getPaymentAction(): ?string
     {
         $paymentAction = null;
         $pre           = __METHOD__ . ' : ';
@@ -220,7 +220,7 @@ class Config extends AbstractConfig
      *
      * @return bool
      */
-    public function isCurrencyCodeSupported($code)
+    public function isCurrencyCodeSupported(string $code): bool
     {
         $supported = false;
         $pre       = __METHOD__ . ' : ';
@@ -240,7 +240,7 @@ class Config extends AbstractConfig
      * Get Api Credential for Payout Payment
      **/
 
-    public function getApiCredentials()
+    public function getApiCredentials(): array
     {
         $data                   = array();
         $storeScope             = ScopeInterface::SCOPE_STORE;
@@ -257,7 +257,7 @@ class Config extends AbstractConfig
      *
      * @return string
      */
-    protected function _getSupportedLocaleCode($localeCode = null)
+    protected function _getSupportedLocaleCode(string $localeCode = null): string
     {
         if ( ! $localeCode || ! in_array($localeCode, $this->_supportedImageLocales)) {
             return 'en_US';
@@ -275,7 +275,7 @@ class Config extends AbstractConfig
      * @return string|null
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    protected function _mapPayoutFieldset($fieldName)
+    protected function _mapPayoutFieldset(string $fieldName): ?string
     {
         return "payment/{$this->_methodCode}/{$fieldName}";
     }
@@ -289,7 +289,7 @@ class Config extends AbstractConfig
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      * @SuppressWarnings(PHPMD.NPathComplexity)
      */
-    protected function _getSpecificConfigPath($fieldName)
+    protected function _getSpecificConfigPath(string $fieldName): ?string
     {
         return $this->_mapPayoutFieldset($fieldName);
     }

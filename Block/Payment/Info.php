@@ -22,7 +22,7 @@ class Info extends \Magento\Payment\Block\Info
     /**
      * @var InfoFactory
      */
-    protected $_PayoutInfoFactory;
+    protected InfoFactory $_PayoutInfoFactory;
 
     /**
      * @param Context $context
