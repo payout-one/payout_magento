@@ -15,8 +15,6 @@ use Magento\Directory\Helper\Data;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Asset\Repository;
-use Magento\Payment\Model\Method\AbstractMethod;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -74,18 +72,19 @@ class Config extends AbstractConfig
      * @param Repository
      */
     public function __construct(
-        ScopeConfigInterface $scopeConfig,
-        Data $directoryHelper,
+        ScopeConfigInterface  $scopeConfig,
+        Data                  $directoryHelper,
         StoreManagerInterface $storeManager,
-        LoggerInterface $logger,
-        Repository $assetRepo
-    ) {
+        LoggerInterface       $logger,
+        Repository            $assetRepo
+    )
+    {
         $this->_logger = $logger;
         parent::__construct($scopeConfig);
         $this->directoryHelper = $directoryHelper;
-        $this->_storeManager   = $storeManager;
-        $this->_assetRepo      = $assetRepo;
-        $this->scopeConfig     = $scopeConfig;
+        $this->_storeManager = $storeManager;
+        $this->_assetRepo = $assetRepo;
+        $this->scopeConfig = $scopeConfig;
 
         $this->setMethod('payout');
         $currentStoreId = $this->_storeManager->getStore()->getStoreId();
@@ -181,89 +180,6 @@ class Config extends AbstractConfig
     public function getPaymentMarkWhatIsPayout(): string
     {
         return 'Payout Payment gateway';
-    }
-
-    /**
-     * Mapper from Payout-specific payment actions to Magento payment actions
-     *
-     * @return string|null
-     */
-    public function getPaymentAction(): ?string
-    {
-        $paymentAction = null;
-        $pre           = __METHOD__ . ' : ';
-        $this->_logger->debug($pre . 'bof');
-
-        $action = $this->getValue('paymentAction');
-
-        switch ($action) {
-            case self::PAYMENT_ACTION_AUTH:
-                $paymentAction = AbstractMethod::ACTION_AUTHORIZE;
-                break;
-            case self::PAYMENT_ACTION_SALE:
-                $paymentAction = AbstractMethod::ACTION_AUTHORIZE_CAPTURE;
-                break;
-            case self::PAYMENT_ACTION_ORDER:
-                $paymentAction = AbstractMethod::ACTION_ORDER;
-                break;
-        }
-
-        $this->_logger->debug($pre . 'eof : paymentAction is ' . $paymentAction);
-
-        return $paymentAction;
-    }
-
-    /**
-     * Check whether specified currency code is supported
-     *
-     * @param string $code
-     *
-     * @return bool
-     */
-    public function isCurrencyCodeSupported(string $code): bool
-    {
-        $supported = false;
-        $pre       = __METHOD__ . ' : ';
-
-        $this->_logger->debug($pre . "bof and code: {$code}");
-
-        if (in_array($code, $this->_supportedCurrencyCodes)) {
-            $supported = true;
-        }
-
-        $this->_logger->debug($pre . "eof and supported : {$supported}");
-
-        return $supported;
-    }
-
-    /**
-     * Get Api Credential for Payout Payment
-     **/
-
-    public function getApiCredentials(): array
-    {
-        $data                   = array();
-        $storeScope             = ScopeInterface::SCOPE_STORE;
-        $data['encryption_key'] = $this->scopeConfig->getValue('payment/payout/encryption_key', $storeScope);
-        $data['payout_id']      = $this->scopeConfig->getValue('payment/payout/payout_id', $storeScope);
-
-        return $data;
-    }
-
-    /**
-     * Check whether specified locale code is supported. Fallback to en_US
-     *
-     * @param string|null $localeCode
-     *
-     * @return string
-     */
-    protected function _getSupportedLocaleCode(string $localeCode = null): string
-    {
-        if ( ! $localeCode || ! in_array($localeCode, $this->_supportedImageLocales)) {
-            return 'en_US';
-        }
-
-        return $localeCode;
     }
 
     /**

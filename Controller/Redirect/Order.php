@@ -11,20 +11,11 @@ namespace Payout\Payment\Controller\Redirect;
 
 use Magento\Framework\App\ObjectManager;
 use Magento\Framework\View\Result\Page;
-use Magento\Framework\View\Result\PageFactory;
 use Magento\Sales\Api\Data\OrderInterface;
 use Payout\Payment\Controller\AbstractPayout;
-use Payout\Payment\Model\Config;
 
 class Order extends AbstractPayout
 {
-
-
-    /**
-     * @var PageFactory
-     */
-    protected PageFactory $resultPageFactory;
-
     /**
      * Execute
      */
@@ -33,7 +24,6 @@ class Order extends AbstractPayout
         $params = $this->getRequest()->getParams();
 
         $orderId = $params['gid'];
-        $order = $this->getOrderByIncrementId($orderId);
 
         $page_object = $this->pageFactory->create();
         $order = $this->getOrderByIncrementId($orderId);
@@ -54,9 +44,8 @@ class Order extends AbstractPayout
     public function getOrderByIncrementId($incrementId)
     {
         $objectManager = ObjectManager::getInstance();
-        $order = $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
 
-        return $order;
+        return $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
     }
 
 }

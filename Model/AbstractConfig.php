@@ -22,12 +22,11 @@ abstract class AbstractConfig implements ConfigInterface
     /**#@+
      * Payment actions
      */
-    const PAYMENT_ACTION_SALE = 'Sale';
+    const string PAYMENT_ACTION_SALE = 'Sale';
 
-    const PAYMENT_ACTION_AUTH = 'Authorization';
+    const string PAYMENT_ACTION_AUTH = 'Authorization';
 
-    const PAYMENT_ACTION_ORDER = 'Order';
-    /**#@-*/
+    const string PAYMENT_ACTION_ORDER = 'Order';
     /**
      * Core store config
      *
@@ -60,7 +59,8 @@ abstract class AbstractConfig implements ConfigInterface
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig
-    ) {
+    )
+    {
         $this->_scopeConfig = $scopeConfig;
     }
 
@@ -89,7 +89,7 @@ abstract class AbstractConfig implements ConfigInterface
     {
         if ($method instanceof MethodInterface) {
             $this->_methodCode = $method->getCode();
-        } elseif (is_string($method)) {
+        } else {
             $this->_methodCode = $method;
         }
 
@@ -115,7 +115,7 @@ abstract class AbstractConfig implements ConfigInterface
      */
     public function setStoreId(int $storeId): AbstractConfig
     {
-        $this->_storeId = (int)$storeId;
+        $this->_storeId = $storeId;
 
         return $this;
     }
@@ -123,17 +123,17 @@ abstract class AbstractConfig implements ConfigInterface
     /**
      * Returns payment configuration value
      *
-     * @param string $key
+     * @param string $field
      * @param null $storeId
      *
      * @return null|string
      *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function getValue($key, $storeId = null): ?string
+    public function getValue($field, $storeId = null): ?string
     {
-        $underscored = strtolower(preg_replace('/(.)([A-Z])/', "$1_$2", $key));
-        $path        = $this->_getSpecificConfigPath($underscored);
+        $underscored = strtolower(preg_replace('/(.)([A-Z])/', "$1_$2", $field));
+        $path = $this->_getSpecificConfigPath($underscored);
 
         if ($path !== null) {
             $value = $this->_scopeConfig->getValue(
@@ -141,9 +141,8 @@ abstract class AbstractConfig implements ConfigInterface
                 ScopeInterface::SCOPE_STORE,
                 $this->_storeId
             );
-            $value = $this->_prepareValue($underscored, $value);
 
-            return $value;
+            return $this->_prepareValue($value);
         }
 
         return null;
@@ -205,16 +204,16 @@ abstract class AbstractConfig implements ConfigInterface
                         ScopeInterface::SCOPE_STORE,
                         $this->_storeId
                     ) ||
-                             $this->_scopeConfig->isSetFlag(
-                                 'payment/' . Config::METHOD_CODE . '/active',
-                                 ScopeInterface::SCOPE_STORE,
-                                 $this->_storeId
-                             );
-                $method    = Config::METHOD_CODE;
+                    $this->_scopeConfig->isSetFlag(
+                        'payment/' . Config::METHOD_CODE . '/active',
+                        ScopeInterface::SCOPE_STORE,
+                        $this->_storeId
+                    );
+                $method = Config::METHOD_CODE;
                 break;
             default:
                 $isEnabled = $this->_scopeConfig->isSetFlag(
-                    "payment/{$method}/active",
+                    "payment/$method/active",
                     ScopeInterface::SCOPE_STORE,
                     $this->_storeId
                 );
@@ -251,18 +250,17 @@ abstract class AbstractConfig implements ConfigInterface
             return sprintf($this->pathPattern, $this->_methodCode, $fieldName);
         }
 
-        return "payment/{$this->_methodCode}/{$fieldName}";
+        return "payment/$this->_methodCode/$fieldName";
     }
 
     /**
      * Perform additional config value preparation and return new value if needed
      *
-     * @param string $key Underscored key
      * @param string $value Old value
      *
      * @return string Modified value or old value
      */
-    protected function _prepareValue(string $key, string $value): string
+    protected function _prepareValue(string $value): string
     {
         return $value;
     }

@@ -9,6 +9,7 @@
 
 namespace Payout\Payment\Model;
 
+use Exception;
 use Magento\Checkout\Model\Session;
 use Magento\Framework\Api\AttributeValueFactory;
 use Magento\Framework\Api\ExtensionAttributesFactory;
@@ -16,7 +17,9 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\Data\Form\FormKey;
 use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\LocalizedExceptionFactory;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Model\Context;
 use Magento\Framework\Model\ResourceModel\AbstractResource;
 use Magento\Framework\Registry;
@@ -25,8 +28,6 @@ use Magento\Payment\Helper\Data;
 use Magento\Payment\Model\Method\AbstractMethod;
 use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Model\Quote;
-use Magento\Sales\Api\Data\OrderPaymentInterface;
-use Magento\Sales\Api\Data\TransactionInterface;
 use Magento\Sales\Api\TransactionRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Address;
@@ -36,12 +37,10 @@ use Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
-use Magento\Vault\Api\Data\PaymentTokenInterface;
 use Magento\Vault\Api\PaymentTokenManagementInterface;
 use Magento\Vault\Api\PaymentTokenRepositoryInterface;
 use Magento\Vault\Model\CreditCardTokenFactory;
 use Magento\Vault\Model\ResourceModel\PaymentToken as PaymentTokenResourceModel;
-use Magento\Vault\Model\Ui\VaultConfigProvider;
 use Payout\Payment\Api\Client as PayoutClient;
 use Payout\Payment\Logger\Logger;
 
@@ -151,20 +150,6 @@ class Payout extends AbstractMethod
     protected Config $_config;
 
     /**
-     * Payment additional information key for payment action
-     *
-     * @var string
-     */
-    protected string $_isOrderPaymentActionKey = 'is_order_action';
-
-    /**
-     * Payment additional information key for number of used authorizations
-     *
-     * @var string
-     */
-    protected string $_authorizationCountKey = 'authorization_count';
-
-    /**
      * @var StoreManagerInterface
      */
     protected StoreManagerInterface $_storeManager;
@@ -237,16 +222,21 @@ class Payout extends AbstractMethod
      * @param ScopeConfigInterface $scopeConfig
      * @param \Magento\Payment\Model\Method\Logger $logger
      * @param ConfigFactory $configFactory
+     * @param Logger $payoutlogger
      * @param StoreManagerInterface $storeManager
      * @param UrlInterface $urlBuilder
      * @param FormKey $formKey
-     * @param CartFactory $cartFactory
      * @param Session $checkoutSession
      * @param LocalizedExceptionFactory $exception
      * @param TransactionRepositoryInterface $transactionRepository
      * @param BuilderInterface $transactionBuilder
-     * @param AbstractResource $resource
-     * @param AbstractDb $resourceCollection
+     * @param CreditCardTokenFactory $CreditCardTokenFactory
+     * @param PaymentTokenRepositoryInterface $PaymentTokenRepositoryInterface
+     * @param PaymentTokenManagementInterface $paymentTokenManagement
+     * @param EncryptorInterface $encryptor
+     * @param PaymentTokenResourceModel $paymentTokenResourceModel
+     * @param AbstractResource|null $resource
+     * @param AbstractDb|null $resourceCollection
      * @param array $data
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
@@ -313,18 +303,19 @@ class Payout extends AbstractMethod
      * Store setter
      * Also updates store ID in config object
      *
-     * @param Store|int $store
+     * @param Store|int $storeId
      *
      * @return Payout
+     * @throws NoSuchEntityException
      */
-    public function setStore($store): Payout
+    public function setStore($storeId): Payout
     {
-        $this->setData('store', $store);
+        $this->setData('store', $storeId);
 
-        if (null === $store) {
-            $store = $this->_storeManager->getStore()->getId();
+        if (null === $storeId) {
+            $storeId = $this->_storeManager->getStore()->getId();
         }
-        $this->_config->setStoreId(is_object($store) ? $store->getId() : $store);
+        $this->_config->setStoreId(is_object($storeId) ? $storeId->getId() : $storeId);
 
         return $this;
     }
@@ -332,7 +323,7 @@ class Payout extends AbstractMethod
     /**
      * Check whether payment method can be used
      *
-     * @param CartInterface|Quote|null $quote
+     * @param CartInterface|null $quote
      *
      * @return bool
      */
@@ -344,11 +335,12 @@ class Payout extends AbstractMethod
     /**
      * This is where we compile data posted by the form to Payout
      * @return string
+     * @throws LocalizedException
+     * @throws Exception
      */
-    public function getStandardCheckoutFormFields(): string
+    public function createCheckout(): string
     {
         $order = $this->_checkoutSession->getLastRealOrder();
-        $pre = __METHOD__ . ' : ';
 
         $clientId = $this->getConfigData('payout_id');
         $secret = $this->getConfigData('encryption_key');
@@ -361,8 +353,6 @@ class Payout extends AbstractMethod
         );
 
         $payout = new PayoutClient($config);
-
-        $externalId = $order->getIncrementId();
 
         $items = [];
 
@@ -409,28 +399,31 @@ class Payout extends AbstractMethod
 
         $response = $payout->createCheckout($checkout_data);
 
-        $order->getPayment()
-            ->setLastTransId($response->id)
-            ->setTransactionId($response->id)
-            ->setAdditionalInformation(
-                [Transaction::RAW_DETAILS =>
-                    [
-                        'checkout_id' => $response->id,
-                        'order_id' => $order->getId(),
-                        'external_id' => $response->external_id,
-                        'amount' => $response->amount,
-                        'currency' => $response->currency,
-                        'customer_email' => $response->customer->email,
-                        'first_name' => $response->customer->first_name,
-                        'last_name' => $response->customer->last_name,
-                        'nonce' => $response->nonce,
-                        'signature' => $response->signature,
-                        'raw_data' => json_encode($response),
-                        'source' => 'checkout_response',
+        $orderPayment = $order->getPayment();
+        if ($orderPayment instanceof Payment) {
+            $orderPayment
+                ->setLastTransId($response->id)
+                ->setTransactionId($response->id)
+                ->setAdditionalInformation(
+                    [Transaction::RAW_DETAILS =>
+                        [
+                            'checkout_id' => $response->id,
+                            'order_id' => $order->getId(),
+                            'external_id' => $response->external_id,
+                            'amount' => $response->amount,
+                            'currency' => $response->currency,
+                            'customer_email' => $response->customer->email,
+                            'first_name' => $response->customer->first_name,
+                            'last_name' => $response->customer->last_name,
+                            'nonce' => $response->nonce,
+                            'signature' => $response->signature,
+                            'raw_data' => json_encode($response),
+                            'source' => 'checkout_response',
+                        ]
                     ]
-                ]
-            )
-            ->save();
+                )
+                ->save();
+        }
 
         $this->_payoutlogger->info("***********************Token Validation from Payout*************************");
 
@@ -456,41 +449,6 @@ class Payout extends AbstractMethod
             'country_code' => $address->getCountryId(),
             'city' => $address->getCity(),
         ];
-    }
-
-    /**
-     * getTotalAmount
-     */
-    public function getTotalAmount($order): string
-    {
-        if ($this->getConfigData('use_store_currency')) {
-            $price = $this->getNumberFormat($order->getGrandTotal());
-        } else {
-            $price = $this->getNumberFormat($order->getBaseGrandTotal());
-        }
-
-        return $price;
-    }
-
-    /**
-     * getNumberFormat
-     */
-    public function getNumberFormat($number): string
-    {
-        return number_format($number, 2, '.', '');
-    }
-
-    /**
-     * getPaidSuccessUrl
-     */
-    public function getPaidSuccessUrl(): string
-    {
-        return $this->_urlBuilder->getUrl('Payout/redirect/success', array('_secure' => true));
-    }
-
-    public function getOrderPlaceRedirectUrl(): string
-    {
-        return $this->_urlBuilder->getUrl('Payout/redirect');
     }
 
     /**
@@ -521,30 +479,6 @@ class Payout extends AbstractMethod
         return parent::initialize($paymentAction, $stateObject);
     }
 
-    /*
-     * called dynamically by checkout's framework.
-     */
-
-    /**
-     * getPaidNotifyUrl
-     */
-    public function getPaidNotifyUrl(): string
-    {
-        return $this->_urlBuilder->getUrl('Payout/notify', array('_secure' => true));
-    }
-
-    public function curlPost($url, $fields): bool|string
-    {
-        $curl = curl_init($url);
-        curl_setopt($curl, CURLOPT_POST, count($fields));
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $fields);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        $response = curl_exec($curl);
-        curl_close($curl);
-
-        return $response;
-    }
-
     /**
      * @return mixed
      */
@@ -553,36 +487,6 @@ class Payout extends AbstractMethod
         return $this->_scopeConfig->getValue(
             'general/store_information/name',
             ScopeInterface::SCOPE_STORE
-        );
-    }
-
-    /**
-     * Place an order with authorization or capture action
-     *
-     * @param Payment $payment
-     * @param float $amount
-     *
-     * @return $this
-     */
-    protected function _placeOrder(Payment $payment, float $amount)
-    {
-        $pre = __METHOD__ . " : ";
-        $this->_logger->debug($pre . 'bof');
-    }
-
-    /**
-     * Get transaction with type order
-     *
-     * @param OrderPaymentInterface $payment
-     *
-     * @return false|TransactionInterface
-     */
-    protected function getOrderTransaction(OrderPaymentInterface $payment): false|TransactionInterface
-    {
-        return $this->transactionRepository->getByTransactionType(
-            Transaction::TYPE_ORDER,
-            $payment->getId(),
-            $payment->getOrder()->getId()
         );
     }
 

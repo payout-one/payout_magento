@@ -41,17 +41,14 @@ use Exception;
  */
 class Client
 {
-    const string LIB_VER = '1.0.0';
     const string API_URL = 'https://app.payout.one/api/v1/';
     const string API_URL_SANDBOX = 'https://sandbox.payout.one/api/v1/';
 
     /**
      * @var array $config API client configuration
-     * @var string $token Obtained API access token
      * @var Connection $connection Connection instance
      */
     private array $config;
-    private mixed $token;
     private Connection $connection;
 
     /**
@@ -81,19 +78,10 @@ class Client
     }
 
     /**
-     * Get a string containing the version of the library.
-     *
-     * @return string
-     */
-    public function getLibraryVersion(): string
-    {
-        return self::LIB_VER;
-    }
-
-    /**
      * Verify signature obtained in API response.
      *
      * @param array $message to be signed
+     * @param string $secret
      * @param string $signature from response
      *
      * @return bool
@@ -170,7 +158,7 @@ class Client
         if (!isset($this->connection)) {
             $api_url = ($this->config['sandbox']) ? self::API_URL_SANDBOX : self::API_URL;
             $this->connection = new Connection($api_url);
-            $this->token = $this->connection->authenticate(
+            $this->connection->authenticate(
                 'authorize',
                 $this->config['client_id'],
                 $this->config['client_secret']

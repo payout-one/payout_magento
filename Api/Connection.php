@@ -134,7 +134,7 @@ class Connection
      *
      * @param string $url URL to which we send the request
      * @param mixed $body Data payload (JSON string or raw data)
-     *
+     * @param array $headers
      * @return mixed
      * @throws Exception
      */
@@ -166,12 +166,11 @@ class Connection
     /**
      * Make an HTTP GET request to the specified endpoint.
      *
-     * @param string $url URL to retrieve
      * @param string $query Optional array of query string parameters
      * @return mixed
      * @throws Exception
      */
-    public function get(string $url, string $query = ''): mixed
+    public function get(string $query = ''): mixed
     {
 
         $this->addHeader('Authorization', 'Bearer ' . $this->token);

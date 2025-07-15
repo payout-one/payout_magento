@@ -9,8 +9,9 @@
 
 namespace Payout\Payment\Controller\Redirect;
 
+use Exception;
 use Magento\Framework\App\ObjectManager;
-use Magento\Framework\Exception\LocalizedException;
+use Magento\Sales\Api\Data\TransactionInterface;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Payment\Transaction;
 use Payout\Payment\Api\Client;
@@ -146,7 +147,7 @@ class Webhook extends AbstractPayout
             // Save Transaction Response
             $this->createTransaction($webhookData, $order);
             $order->setState($status)->setStatus($status)->save();
-        } catch (LocalizedException $e) {
+        } catch (Exception $e) {
             $this->_logger->error($pre . $e->getMessage());
         }
     }
@@ -195,7 +196,7 @@ class Webhook extends AbstractPayout
                 )
                 ->setFailSafe(true)
                 //build method creates the transaction and returns the object
-                ->build(Transaction::TYPE_CAPTURE);
+                ->build(TransactionInterface::TYPE_CAPTURE);
 
             $payment->addTransactionCommentsToOrder(
                 $transaction,
