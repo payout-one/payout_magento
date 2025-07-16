@@ -10,8 +10,6 @@
 namespace Payout\Payment\Block\Payment;
 
 use Magento\Framework\View\Element\Template\Context;
-use Magento\Payment\Model\Config;
-use Payout\Payment\Model\InfoFactory;
 
 /**
  * Payout common payment info block
@@ -20,23 +18,14 @@ use Payout\Payment\Model\InfoFactory;
 class Info extends \Magento\Payment\Block\Info
 {
     /**
-     * @var InfoFactory
-     */
-    protected InfoFactory $_PayoutInfoFactory;
-
-    /**
      * @param Context $context
-     * @param Config $paymentConfig
-     * @param InfoFactory $PayoutInfoFactory
      * @param array $data
      */
     public function __construct(
         Context $context,
-        Config $paymentConfig,
-        InfoFactory $PayoutInfoFactory,
-        array $data = []
-    ) {
-        $this->_PayoutInfoFactory = $PayoutInfoFactory;
+        array   $data = [],
+    )
+    {
         parent::__construct($context, $data);
     }
 

@@ -15,7 +15,6 @@
             <payout>
                 <active>1</active>
                 <title>Pay Via Payout</title>
-                <instructions>Payout payment gateway</instructions>
                 <payment_action>Authorization</payment_action>
                 <test>1</test>
                 <test_mode>1</test_mode>

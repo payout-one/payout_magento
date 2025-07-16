@@ -31,7 +31,7 @@ class Cart extends \Magento\Payment\Model\Cart
     {
         $this->_collectItemsAndAmounts();
 
-        if ( ! $this->_areAmountsValid) {
+        if (!$this->_areAmountsValid) {
             $subtotal = $this->getSubtotal() + $this->getTax();
 
             if (empty($this->_transferFlags[self::AMOUNT_SHIPPING])) {
@@ -46,22 +46,6 @@ class Cart extends \Magento\Payment\Model\Cart
         }
 
         return $this->_amounts;
-    }
-
-    /**
-     * Check whether any item has negative amount
-     *
-     * @return bool
-     */
-    public function hasNegativeItemAmount(): bool
-    {
-        foreach ($this->_customItems as $item) {
-            if ($item->getAmount() < 0) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -84,7 +68,7 @@ class Cart extends \Magento\Payment\Model\Cart
      */
     protected function _validate(): void
     {
-        $areItemsValid          = false;
+        $areItemsValid = false;
         $this->_areAmountsValid = false;
 
         $referenceAmount = $this->_salesModel->getDataUsingMethod('base_grand_total');
@@ -119,9 +103,9 @@ class Cart extends \Magento\Payment\Model\Cart
 
         $areItemsValid = $areItemsValid && $this->_areAmountsValid;
 
-        if ( ! $areItemsValid) {
+        if (!$areItemsValid) {
             $this->_salesModelItems = [];
-            $this->_customItems     = [];
+            $this->_customItems = [];
         }
     }
 
@@ -140,23 +124,23 @@ class Cart extends \Magento\Payment\Model\Cart
             }
 
             $amount = $item->getPrice();
-            $qty    = $item->getQty();
+            $qty = $item->getQty();
 
             $subAggregatedLabel = '';
 
             // Workaround in case if item subtotal precision is not compatible with Payout (.2)
             if ($amount - round($amount, 2)) {
-                $amount             = $amount * $qty;
+                $amount = $amount * $qty;
                 $subAggregatedLabel = ' x' . $qty;
-                $qty                = 1;
+                $qty = 1;
             }
 
             // Aggregate item price if item qty * price does not match row total
             $itemBaseRowTotal = $item->getOriginalItem()->getBaseRowTotal();
             if ($amount * $qty != $itemBaseRowTotal) {
-                $amount             = (double)$itemBaseRowTotal;
+                $amount = (double)$itemBaseRowTotal;
                 $subAggregatedLabel = ' x' . $qty;
-                $qty                = 1;
+                $qty = 1;
             }
 
             $this->_salesModelItems[] = $this->_createItemFromData(

@@ -9,19 +9,23 @@
 
 namespace Payout\Payment\Controller;
 
+use Exception;
 use Magento\Checkout\Controller\Express\RedirectLoginInterface;
 use Magento\Checkout\Model\Session;
 use Magento\Customer\Model\Url;
-use Magento\Framework\App\Action\Action as AppAction;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\ActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
+use Magento\Framework\App\Response\Http;
+use Magento\Framework\App\Response\RedirectInterface;
 use Magento\Framework\DB\TransactionFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Message\ManagerInterface as MessageManagerInterface;
 use Magento\Framework\Session\Generic;
 use Magento\Framework\Stdlib\DateTime\DateTime;
-use Magento\Framework\Url\Helper;
 use Magento\Framework\Url\Helper\Data;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Result\PageFactory;
@@ -39,20 +43,17 @@ use Payout\Payment\Logger\Logger;
 use Payout\Payment\Model\Config;
 use Payout\Payment\Model\Payout;
 use Psr\Log\LoggerInterface;
+use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
+use Magento\Quote\Model\ResourceModel\Quote as QuoteResourceModel;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\ObjectManagerInterface;
 
 /**
  * Checkout Controller
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInterface, CsrfAwareActionInterface
+abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInterface, CsrfAwareActionInterface
 {
-    /**
-     * Internal cache of checkout models
-     *
-     * @var array
-     */
-    protected array $_checkoutTypes = [];
-
     /**
      * @var Config
      */
@@ -101,9 +102,9 @@ abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInte
     protected Generic $payoutSession;
 
     /**
-     * @var Helper|Data
+     * @var Data
      */
-    protected Helper|Data $_urlHelper;
+    protected Data $_urlHelper;
 
     /**
      * @var Url
@@ -176,14 +177,49 @@ abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInte
     protected CollectionFactory $_orderCollectionFactory;
 
     /**
-     * @var Magento\Sales\Model\Order\Payment\Transaction\Builder|Builder $_transactionBuilder
+     * @var Builder $_transactionBuilder
      */
-    protected Magento\Sales\Model\Order\Payment\Transaction\Builder|Builder $_transactionBuilder;
+    protected Builder $_transactionBuilder;
 
     /**
      * @var DateTime
      */
     protected DateTime $_date;
+
+    /**
+     * @var OrderResourceModel
+     */
+    protected OrderResourceModel $orderResourceModel;
+
+    /**
+     * @var QuoteResourceModel
+     */
+    protected QuoteResourceModel $quoteResourceModel;
+
+    /**
+     * @var ResponseInterface
+     */
+    protected ResponseInterface $responseInterface;
+
+    /**
+     * @var ObjectManagerInterface
+     */
+    protected ObjectManagerInterface $objectManagerInterface;
+
+    /**
+     * @var RequestInterface
+     */
+    protected RequestInterface $requestInterface;
+
+    /**
+     * @var MessageManagerInterface
+     */
+    protected MessageManagerInterface $messageManager;
+
+    /**
+     * @var RedirectInterface
+     */
+    protected RedirectInterface $redirectInterface;
 
     /**
      * @param Context $context
@@ -194,32 +230,48 @@ abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInte
      * @param Generic $payoutSession
      * @param Data $urlHelper
      * @param Url $customerUrl
+     * @param LoggerInterface $logger
+     * @param Logger $payoutlogger
      * @param TransactionFactory $transactionFactory
+     * @param InvoiceService $invoiceService
+     * @param InvoiceSender $invoiceSender
      * @param Payout $paymentMethod
+     * @param UrlInterface $urlBuilder
+     * @param OrderRepositoryInterface $orderRepository
+     * @param StoreManagerInterface $storeManager
+     * @param OrderSender $OrderSender
+     * @param DateTime $date
+     * @param CollectionFactory $orderCollectionFactory
+     * @param Builder $_transactionBuilder
+     * @param OrderResourceModel $orderResourceModel
+     * @param QuoteResourceModel $quoteResourceModel
      */
     public function __construct(
-        Context $context,
-        PageFactory $pageFactory,
+        Context                         $context,
+        PageFactory                     $pageFactory,
         \Magento\Customer\Model\Session $customerSession,
-        Session $checkoutSession,
-        OrderFactory $orderFactory,
-        Generic $payoutSession,
-        Data $urlHelper,
-        Url $customerUrl,
-        LoggerInterface $logger,
-        Logger $payoutlogger,
-        TransactionFactory $transactionFactory,
-        InvoiceService $invoiceService,
-        InvoiceSender $invoiceSender,
-        Payout $paymentMethod,
-        UrlInterface $urlBuilder,
-        OrderRepositoryInterface $orderRepository,
-        StoreManagerInterface $storeManager,
-        OrderSender $OrderSender,
-        DateTime $date,
-        CollectionFactory $orderCollectionFactory,
-        Builder $_transactionBuilder
-    ) {
+        Session                         $checkoutSession,
+        OrderFactory                    $orderFactory,
+        Generic                         $payoutSession,
+        Data                            $urlHelper,
+        Url                             $customerUrl,
+        LoggerInterface                 $logger,
+        Logger                          $payoutlogger,
+        TransactionFactory              $transactionFactory,
+        InvoiceService                  $invoiceService,
+        InvoiceSender                   $invoiceSender,
+        Payout                          $paymentMethod,
+        UrlInterface                    $urlBuilder,
+        OrderRepositoryInterface        $orderRepository,
+        StoreManagerInterface           $storeManager,
+        OrderSender                     $OrderSender,
+        DateTime                        $date,
+        CollectionFactory               $orderCollectionFactory,
+        Builder                         $_transactionBuilder,
+        OrderResourceModel              $orderResourceModel,
+        QuoteResourceModel              $quoteResourceModel,
+    )
+    {
         $pre = __METHOD__ . " : ";
 
         $this->_logger = $logger;
@@ -228,31 +280,37 @@ abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInte
 
         $this->_logger->debug($pre . 'bof');
 
-        $this->_customerSession        = $customerSession;
-        $this->_checkoutSession        = $checkoutSession;
-        $this->_orderFactory           = $orderFactory;
-        $this->payoutSession           = $payoutSession;
-        $this->_urlHelper              = $urlHelper;
-        $this->_customerUrl            = $customerUrl;
-        $this->pageFactory             = $pageFactory;
-        $this->_invoiceService         = $invoiceService;
-        $this->invoiceSender           = $invoiceSender;
-        $this->OrderSender             = $OrderSender;
-        $this->_transactionFactory     = $transactionFactory;
-        $this->_paymentMethod          = $paymentMethod;
-        $this->_urlBuilder             = $urlBuilder;
-        $this->orderRepository         = $orderRepository;
-        $this->_storeManager           = $storeManager;
-        $this->_date                   = $date;
+        $this->_customerSession = $customerSession;
+        $this->_checkoutSession = $checkoutSession;
+        $this->_orderFactory = $orderFactory;
+        $this->payoutSession = $payoutSession;
+        $this->_urlHelper = $urlHelper;
+        $this->_customerUrl = $customerUrl;
+        $this->pageFactory = $pageFactory;
+        $this->_invoiceService = $invoiceService;
+        $this->invoiceSender = $invoiceSender;
+        $this->OrderSender = $OrderSender;
+        $this->_transactionFactory = $transactionFactory;
+        $this->_paymentMethod = $paymentMethod;
+        $this->_urlBuilder = $urlBuilder;
+        $this->orderRepository = $orderRepository;
+        $this->_storeManager = $storeManager;
+        $this->_date = $date;
         $this->_orderCollectionFactory = $orderCollectionFactory;
-        $this->_transactionBuilder     = $_transactionBuilder;
+        $this->_transactionBuilder = $_transactionBuilder;
+        
+        $this->responseInterface = $context->getResponse();
+        $this->objectManagerInterface = $context->getObjectManager();
+        $this->messageManager = $context->getMessageManager();
+        $this->redirectInterface = $context->getRedirect();
+        $this->requestInterface = $context->getRequest();
 
-        parent::__construct($context);
-
-        $parameters    = ['params' => [$this->_configMethod]];
-        $this->_config = $this->_objectManager->create($this->_configType, $parameters);
+        $parameters = ['params' => [$this->_configMethod]];
+        $this->_config = $this->objectManagerInterface->create($this->_configType, $parameters);
 
         $this->_logger->debug($pre . 'eof');
+        $this->orderResourceModel = $orderResourceModel;
+        $this->quoteResourceModel = $quoteResourceModel;
     }
 
     /**
@@ -260,7 +318,8 @@ abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInte
      */
     public function createCsrfValidationException(
         RequestInterface $request
-    ): ?InvalidRequestException {
+    ): ?InvalidRequestException
+    {
         return null;
     }
 
@@ -322,24 +381,11 @@ abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInte
     }
 
     /**
-     * Redirect to login page
-     *
-     * @return void
-     */
-    public function redirectLogin(): void
-    {
-        $this->_actionFlag->set('', 'no-dispatch', true);
-        $this->_customerSession->setBeforeAuthUrl($this->_redirect->getRefererUrl());
-        $this->getResponse()->setRedirect(
-            $this->_urlHelper->addRequestParam($this->_customerUrl->getLoginUrl(), ['context' => 'checkout'])
-        );
-    }
-
-    /**
      * Instantiate
      *
      * @return void
      * @throws LocalizedException
+     * @throws Exception
      */
     protected function _initCheckout(): void
     {
@@ -347,25 +393,36 @@ abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInte
         $this->_logger->debug($pre . 'bof');
         $this->_order = $this->_checkoutSession->getLastRealOrder();
 
-        if ( ! $this->_order->getId()) {
-            $this->getResponse()->setStatusHeader(404, '1.1', 'Not found');
+        if (!$this->_order->getId()) {
+            $response = $this->getResponse();
+            if ($response instanceof Http) {
+                $response->setStatusHeader(404, '1.1', 'Not found');
+            }
             throw new LocalizedException(__('We could not find "Order" for processing'));
         }
 
         if ($this->_order->getState() != Order::STATE_PENDING_PAYMENT) {
             $this->_order->setState(
                 Order::STATE_PENDING_PAYMENT
-            )->save();
+            );
+            $this->orderResourceModel->save($this->_order);
         }
 
         if ($this->_order->getQuoteId()) {
             $this->_checkoutSession->setPayoutQuoteId($this->_checkoutSession->getQuoteId());
             $this->_checkoutSession->setPayoutSuccessQuoteId($this->_checkoutSession->getLastSuccessQuoteId());
             $this->_checkoutSession->setPayoutRealOrderId($this->_checkoutSession->getLastRealOrderId());
-            $this->_checkoutSession->getQuote()->setIsActive(false)->save();
+            $quote = $this->_checkoutSession->getQuote();
+            $quote->setIsActive(false);
+            $this->quoteResourceModel->save($quote);
         }
 
         $this->_logger->debug($pre . 'eof');
+    }
+
+    public function getResponse(): ResponseInterface
+    {
+        return $this->responseInterface;
     }
 
     /**
@@ -392,14 +449,28 @@ abstract class AbstractPayoutm240 extends AppAction implements RedirectLoginInte
      * Return checkout quote object
      *
      * @return bool|Quote
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
      */
     protected function _getQuote(): bool|Quote
     {
-        if ( ! $this->_quote) {
+        if (!$this->_quote) {
             $this->_quote = $this->_getCheckoutSession()->getQuote();
         }
 
         return $this->_quote;
     }
 
+    /**
+     *
+     * Set redirect into response
+     * @param $path
+     * @param array $arguments
+     * @return ResponseInterface
+     */
+    protected function redirect($path, array $arguments = []): ResponseInterface
+    {
+        $this->redirectInterface->redirect($this->getResponse(), $path, $arguments);
+        return $this->getResponse();
+    }
 }
