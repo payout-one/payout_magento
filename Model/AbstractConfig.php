@@ -10,7 +10,7 @@
 namespace Payout\Payment\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Payment\Model\Method\ConfigInterface;
+use Magento\Payment\Gateway\ConfigInterface;
 use Magento\Payment\Model\MethodInterface;
 use Magento\Store\Model\ScopeInterface;
 
@@ -19,14 +19,6 @@ use Magento\Store\Model\ScopeInterface;
  */
 abstract class AbstractConfig implements ConfigInterface
 {
-    /**#@+
-     * Payment actions
-     */
-    const string PAYMENT_ACTION_SALE = 'Sale';
-
-    const string PAYMENT_ACTION_AUTH = 'Authorization';
-
-    const string PAYMENT_ACTION_ORDER = 'Order';
     /**
      * Core store config
      *
@@ -121,16 +113,9 @@ abstract class AbstractConfig implements ConfigInterface
     }
 
     /**
-     * Returns payment configuration value
-     *
-     * @param string $field
-     * @param null $storeId
-     *
-     * @return null|string
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * {@inheritdoc}
      */
-    public function getValue($field, $storeId = null): ?string
+    public function getValue($field, $storeId = null)
     {
         $underscored = strtolower(preg_replace('/(.)([A-Z])/', "$1_$2", $field));
         $path = $this->_getSpecificConfigPath($underscored);
@@ -149,11 +134,7 @@ abstract class AbstractConfig implements ConfigInterface
     }
 
     /**
-     * Sets method code
-     *
-     * @param string $methodCode
-     *
-     * @return void
+     * {@inheritdoc}
      */
     public function setMethodCode($methodCode): void
     {
@@ -161,16 +142,13 @@ abstract class AbstractConfig implements ConfigInterface
     }
 
     /**
-     * Sets path pattern
-     *
-     * @param string $pathPattern
-     *
-     * @return void
+     * {@inheritdoc}
      */
     public function setPathPattern($pathPattern): void
     {
         $this->pathPattern = $pathPattern;
     }
+
 
     /**
      * Check whether method available for checkout or not

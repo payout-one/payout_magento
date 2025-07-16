@@ -33,15 +33,15 @@ class Index extends AbstractPayout
 
         try {
             $this->_initCheckout();
-            $this->_redirect($this->_paymentMethod->createCheckout());
+            $this->redirect($this->_paymentMethod->createCheckout());
         } catch (LocalizedException $e) {
             $this->_logger->error($pre . $e->getMessage());
             $this->messageManager->addExceptionMessage($e, $e->getMessage());
-            $this->_redirect('checkout/cart');
+            $this->redirect('checkout/cart');
         } catch (Exception $e) {
             $this->_logger->error($pre . $e->getMessage());
             $this->messageManager->addExceptionMessage($e, __('We can\'t start Payout Checkout.'));
-            $this->_redirect('checkout/cart');
+            $this->redirect('checkout/cart');
         }
 
         return $page_object;
