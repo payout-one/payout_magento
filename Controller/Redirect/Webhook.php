@@ -88,7 +88,7 @@ class Webhook extends AbstractPayout
     /**
      * Execute on Payout/redirect/success
      */
-    public function execute(): void
+    public function execute()
     {
         $webhookData = json_decode(file_get_contents('php://input'));
 
@@ -99,12 +99,12 @@ class Webhook extends AbstractPayout
 
         if (!isset($webhookData->external_id)) {
             $this->_payoutlogger->error("Webhook error: There is no external id");
-            return;
+            return $this->getResponse();
         }
 
         if (empty($payoutSecret)) {
             $this->_payoutlogger->error("Webhook error: Payout secret is not filled in configuration, can not verify signature");
-            return;
+            return $this->getResponse();
         }
 
         if (
@@ -119,7 +119,7 @@ class Webhook extends AbstractPayout
             )
         ) {
             $this->_payoutlogger->error("Webhook error: Signature is not valid");
-            return;
+            return $this->getResponse();
         }
 
         $external_id = $webhookData->external_id;
@@ -131,19 +131,19 @@ class Webhook extends AbstractPayout
             $order = $this->getOrderByPaymentId($external_id);
             if (!isset($order) || $order->getId() == null) {
                 $this->_payoutlogger->error("Webhook error: Order not found for external id (payment id): " . $external_id);
-                return;
+                return $this->getResponse();
             }
             if (!isset($webhookData->data->status)) {
                 $this->_payoutlogger->error("Webhook error: checkout status not set in webhook");
-                return;
+                return $this->getResponse();
             }
             if ($webhookData->data->status != "succeeded") {
                 $this->_payoutlogger->info("Webhook info: checkout status is not succeeded (" . $webhookData->data->status . "), skipping");
-                return;
+                return $this->getResponse();
             }
             if ($order->getPayment()->getMethod() != "payout") {
                 $this->_payoutlogger->error("Webhook error: Payment method in order is not Payout");
-                return;
+                return $this->getResponse();
             }
 
             $objectManager = ObjectManager::getInstance();
@@ -157,7 +157,7 @@ class Webhook extends AbstractPayout
                     && $transactionAdditionalInformation['raw_details_info']['source'] == "webhook"
                 ) {
                     $this->_payoutlogger->info("Webhook info: Success webhook for this checkout was already processed");
-                    return;
+                    return $this->getResponse();
                 }
             }
 
@@ -210,6 +210,7 @@ class Webhook extends AbstractPayout
         } catch (Exception $e) {
             $this->_logger->error($pre . $e->getMessage());
         }
+        return $this->getResponse();
     }
 
     public function createTransaction($webhookData, $order = null): void
