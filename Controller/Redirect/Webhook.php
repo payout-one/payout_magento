@@ -10,12 +10,35 @@
 namespace Payout\Payment\Controller\Redirect;
 
 use Exception;
+use Magento\Checkout\Model\Session;
+use Magento\Customer\Model\Url;
+use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\ObjectManager;
+use Magento\Framework\DB\TransactionFactory;
+use Magento\Framework\Session\Generic;
+use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Framework\Url\Helper\Data;
+use Magento\Framework\UrlInterface;
+use Magento\Framework\View\Result\PageFactory;
 use Magento\Sales\Api\Data\TransactionInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Model\Order\Email\Sender\InvoiceSender;
+use Magento\Sales\Model\Order\Email\Sender\OrderSender;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Payment\Transaction;
+use Magento\Sales\Model\Order\Payment\Transaction\Builder;
+use Magento\Sales\Model\OrderFactory;
+use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
+use Magento\Sales\Model\Service\InvoiceService;
+use Magento\Store\Model\StoreManagerInterface;
 use Payout\Payment\Api\Client;
 use Payout\Payment\Controller\AbstractPayout;
+use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction as TransactionResourceModel;
+use Payout\Payment\Logger\Logger;
+use Payout\Payment\Model\Payout;
+use Psr\Log\LoggerInterface;
+use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
+use Magento\Quote\Model\ResourceModel\Quote as QuoteResourceModel;
 
 /**
  * Responsible for loading page content.
@@ -25,6 +48,43 @@ use Payout\Payment\Controller\AbstractPayout;
  */
 class Webhook extends AbstractPayout
 {
+    /**
+     * @var TransactionResourceModel
+     */
+    private TransactionResourceModel $transactionResourceModel;
+
+    public function __construct(
+        Context                         $context,
+        PageFactory                     $pageFactory,
+        \Magento\Customer\Model\Session $customerSession,
+        Session                         $checkoutSession,
+        OrderFactory                    $orderFactory,
+        Generic                         $payoutSession,
+        Data                            $urlHelper,
+        Url                             $customerUrl,
+        LoggerInterface                 $logger,
+        Logger                          $payoutlogger,
+        TransactionFactory              $transactionFactory,
+        InvoiceService                  $invoiceService,
+        InvoiceSender                   $invoiceSender,
+        Payout                          $paymentMethod,
+        UrlInterface                    $urlBuilder,
+        OrderRepositoryInterface        $orderRepository,
+        StoreManagerInterface           $storeManager,
+        OrderSender                     $OrderSender,
+        DateTime                        $date,
+        CollectionFactory               $orderCollectionFactory,
+        Builder                         $_transactionBuilder,
+        TransactionResourceModel        $transactionResourceModel,
+        OrderResourceModel              $orderResourceModel,
+        QuoteResourceModel              $quoteResourceModel,
+    )
+    {
+        parent::__construct($context, $pageFactory, $customerSession, $checkoutSession, $orderFactory, $payoutSession, $urlHelper, $customerUrl, $logger, $payoutlogger, $transactionFactory, $invoiceService, $invoiceSender, $paymentMethod, $urlBuilder, $orderRepository, $storeManager, $OrderSender, $date, $orderCollectionFactory, $_transactionBuilder, $orderResourceModel, $quoteResourceModel);
+
+        $this->transactionResourceModel = $transactionResourceModel;
+    }
+
     /**
      * Execute on Payout/redirect/success
      */
@@ -129,7 +189,7 @@ class Webhook extends AbstractPayout
             $invoice->register();
 
             // Save the invoice to the order
-            $transaction = $this->_objectManager->create('Magento\Framework\DB\Transaction')
+            $transaction = $this->objectManagerInterface->create('Magento\Framework\DB\Transaction')
                 ->addObject($invoice)
                 ->addObject($invoice->getOrder());
 
@@ -206,7 +266,7 @@ class Webhook extends AbstractPayout
             $payment->save();
             $order->save();
 
-            $transaction->save()->getTransactionId();
+            $this->transactionResourceModel->save($transaction);
         } catch (Exception $e) {
             $this->_logger->error(__METHOD__ . " : Error creating payment transaction: " . $e->getMessage());
         }

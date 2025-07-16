@@ -13,6 +13,7 @@ namespace Payout\Payment\Model;
 
 use Magento\Directory\Helper\Data;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Asset\Repository;
 use Magento\Store\Model\StoreManagerInterface;
@@ -67,9 +68,9 @@ class Config extends AbstractConfig
      * @param ScopeConfigInterface $scopeConfig
      * @param Data $directoryHelper
      * @param StoreManagerInterface $storeManager
-     * @param array $params
      * @param LoggerInterface $logger
-     * @param Repository
+     * @param Repository $assetRepo
+     * @throws NoSuchEntityException
      */
     public function __construct(
         ScopeConfigInterface  $scopeConfig,
@@ -157,7 +158,7 @@ class Config extends AbstractConfig
             return $countryMethods;
         }
 
-        return isset($countryMethods[$countryCode]) ? $countryMethods[$countryCode] : $countryMethods['other'];
+        return $countryMethods[$countryCode] ?? $countryMethods['other'];
     }
 
     /**
@@ -193,7 +194,7 @@ class Config extends AbstractConfig
      */
     protected function _mapPayoutFieldset(string $fieldName): ?string
     {
-        return "payment/{$this->_methodCode}/{$fieldName}";
+        return "payment/$this->_methodCode/$fieldName";
     }
 
     /**

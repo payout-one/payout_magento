@@ -21,16 +21,16 @@ class Order extends AbstractPayout
      */
     public function execute(): Page
     {
-        $params = $this->getRequest()->getParams();
+        $params = $this->requestInterface->getParams();
 
         $orderId = $params['gid'];
 
         $page_object = $this->pageFactory->create();
         $order = $this->getOrderByIncrementId($orderId);
         if ($order->getStatus() == "pending_payment") {
-            $this->_redirect('checkout/onepage/failure');
+            $this->redirect('checkout/onepage/failure');
         } else {
-            $this->_redirect('checkout/onepage/success');
+            $this->redirect('checkout/onepage/success');
         }
 
         return $page_object;

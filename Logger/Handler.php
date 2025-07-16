@@ -3,7 +3,7 @@
 namespace Payout\Payment\Logger;
 
 use Magento\Framework\Logger\Handler\Base;
-use Monolog\Logger;
+use Monolog\Level;
 
 class Handler extends Base
 {
@@ -11,7 +11,7 @@ class Handler extends Base
      * Logging level
      * @var int
      */
-    protected $loggerType = Logger::INFO;
+    protected $loggerType = Level::Info;
 
     /**
      * File name

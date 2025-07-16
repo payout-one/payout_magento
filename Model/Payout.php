@@ -39,10 +39,10 @@ use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Vault\Api\PaymentTokenManagementInterface;
 use Magento\Vault\Api\PaymentTokenRepositoryInterface;
-use Magento\Vault\Model\CreditCardTokenFactory;
 use Magento\Vault\Model\ResourceModel\PaymentToken as PaymentTokenResourceModel;
 use Payout\Payment\Api\Client as PayoutClient;
 use Payout\Payment\Logger\Logger;
+use Magento\Sales\Model\ResourceModel\Order\Payment as PaymentResourceModel;
 
 /* Payout Api */
 
@@ -183,7 +183,6 @@ class Payout extends AbstractMethod
      * @var BuilderInterface
      */
     protected BuilderInterface $transactionBuilder;
-    protected CreditCardTokenFactory $creditCardTokenFactory;
     protected PaymentTokenRepositoryInterface $paymentTokenRepository;
 
     /**
@@ -212,6 +211,10 @@ class Payout extends AbstractMethod
      */
     protected Logger $_payoutlogger;
 
+    /**
+     * @var PaymentResourceModel
+     */
+    protected PaymentResourceModel $paymentResourceModel;
 
     /**
      * @param Context $context
@@ -230,11 +233,11 @@ class Payout extends AbstractMethod
      * @param LocalizedExceptionFactory $exception
      * @param TransactionRepositoryInterface $transactionRepository
      * @param BuilderInterface $transactionBuilder
-     * @param CreditCardTokenFactory $CreditCardTokenFactory
      * @param PaymentTokenRepositoryInterface $PaymentTokenRepositoryInterface
      * @param PaymentTokenManagementInterface $paymentTokenManagement
      * @param EncryptorInterface $encryptor
      * @param PaymentTokenResourceModel $paymentTokenResourceModel
+     * @param PaymentResourceModel $paymentResourceModel
      * @param AbstractResource|null $resource
      * @param AbstractDb|null $resourceCollection
      * @param array $data
@@ -257,11 +260,11 @@ class Payout extends AbstractMethod
         LocalizedExceptionFactory            $exception,
         TransactionRepositoryInterface       $transactionRepository,
         BuilderInterface                     $transactionBuilder,
-        CreditCardTokenFactory               $CreditCardTokenFactory,
         PaymentTokenRepositoryInterface      $PaymentTokenRepositoryInterface,
         PaymentTokenManagementInterface      $paymentTokenManagement,
         EncryptorInterface                   $encryptor,
         PaymentTokenResourceModel            $paymentTokenResourceModel,
+        PaymentResourceModel                 $paymentResourceModel,
         AbstractResource                     $resource = null,
         AbstractDb                           $resourceCollection = null,
         array                                $data = []
@@ -287,7 +290,6 @@ class Payout extends AbstractMethod
         $this->_exception = $exception;
         $this->transactionRepository = $transactionRepository;
         $this->transactionBuilder = $transactionBuilder;
-        $this->creditCardTokenFactory = $CreditCardTokenFactory;
         $this->paymentTokenRepository = $PaymentTokenRepositoryInterface;
         $this->paymentTokenManagement = $paymentTokenManagement;
         $this->encryptor = $encryptor;
@@ -297,6 +299,7 @@ class Payout extends AbstractMethod
 
         $this->_config = $configFactory->create($parameters);
         $this->_payoutlogger = $payoutlogger;
+        $this->paymentResourceModel = $paymentResourceModel;
     }
 
     /**
@@ -421,8 +424,8 @@ class Payout extends AbstractMethod
                             'source' => 'checkout_response',
                         ]
                     ]
-                )
-                ->save();
+                );
+            $this->paymentResourceModel->save($orderPayment);
         }
 
         $this->_payoutlogger->info("***********************Token Validation from Payout*************************");
