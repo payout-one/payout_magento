@@ -15,6 +15,7 @@ use Magento\Customer\Model\Url;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\ObjectManager;
 use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\DB\TransactionFactory;
 use Magento\Framework\Session\Generic;
 use Magento\Framework\Stdlib\DateTime\DateTime;
@@ -88,9 +89,9 @@ class Webhook extends AbstractPayout
 
     /**
      * Execute on Payout/redirect/webhook
-     * @returns ResponseInterface
+     * @returns ResultInterface|ResponseInterface
      */
-    public function execute(): ResponseInterface
+    public function execute(): ResultInterface|ResponseInterface
     {
         $webhookData = json_decode(file_get_contents('php://input'));
 
