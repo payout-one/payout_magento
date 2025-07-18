@@ -1,0 +1,31 @@
+<?php use Payout\Payment\Model\Payout;
+
+if (!empty($payoutTransactions = $block->getViewModel()->getPayoutTransactions())):
+    foreach ($payoutTransactions as $payoutTransaction) {
+        if ($payoutTransaction['status'] == Payout::CHECKOUT_STATE_SUCCEEDED) {
+            ?>
+            <div class="message message-success" style="text-align:center; padding:2rem;">
+                <div style="margin-bottom:1rem;">
+                    <span class="lib-icon" style="font-size:48px; color:green;">✔</span>
+                </div>
+                <h2 class="page-title">Payment Accepted</h2>
+                <p>Payment was successfully processed. Thank you for your order!</p>
+            </div>
+
+        <?php } else { ?>
+            <div class="message message-notice" style="text-align:center; padding:2rem;">
+                <div style="margin-bottom:1rem;">
+                    <span class="lib-icon" style="font-size:48px; color:orange;">⌛</span>
+                </div>
+                <h2 class="page-title">Order Not Paid Yet</h2>
+                <p>Your payment is still pending. You can retry the payment below to complete your order.</p>
+                <div style="margin-top:1rem;">
+                    <a href="<?= $payoutTransaction['repeat_checkout_url'] ?>"
+                       class="action primary">
+                        Retry Payment
+                    </a>
+                </div>
+            </div>
+        <?php }
+    }
+endif; ?>

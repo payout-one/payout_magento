@@ -9,8 +9,6 @@
 
 namespace Payout\Payment\Controller\Redirect;
 
-use Exception;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\View\Result\Page;
 use Payout\Payment\Controller\AbstractPayout;
 
@@ -27,24 +25,6 @@ class Index extends AbstractPayout
      */
     public function execute(): Page
     {
-        $pre = __METHOD__ . " : ";
-
-        $page_object = $this->pageFactory->create();
-
-        try {
-            $this->_initCheckout();
-            $this->redirect($this->_paymentMethod->createCheckout());
-        } catch (LocalizedException $e) {
-            $this->_logger->error($pre . $e->getMessage());
-            $this->messageManager->addExceptionMessage($e, $e->getMessage());
-            $this->redirect('checkout/cart');
-        } catch (Exception $e) {
-            $this->_logger->error($pre . $e->getMessage());
-            $this->messageManager->addExceptionMessage($e, __('We can\'t start Payout Checkout.'));
-            $this->redirect('checkout/cart');
-        }
-
-        return $page_object;
+        return $this->createCheckout($this->_checkoutSession->getLastRealOrder());
     }
-
 }
