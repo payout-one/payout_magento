@@ -18,6 +18,8 @@ Pre inštaláciu rozšírenia sú potrebné nasledujúce kroky:
     - `bin/magento setup:upgrade`
     - `bin/magento setup:di:compile`
     - `bin/magento setup:static-content:deploy -f`
+    - načítanie sk prekladov: `bin/magento setup:static-content:deploy sk_SK -f`
+    - načítanie en prekladov  `bin/magento setup:static-content:deploy en_US -f`
     - pre zmazanie cache: `bin/magento cache:clean`, `bin/magento cache:flush`
     - ak je potrebná reindexácia: `bin/magento indexer:reindex`
 3. Nastaviť konfigurácie rozšírenia

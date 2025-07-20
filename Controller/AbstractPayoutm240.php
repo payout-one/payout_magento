@@ -475,13 +475,9 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
         try {
             $this->_initCheckout($order);
             $this->redirect($this->_paymentMethod->createCheckoutForLastOrder());
-        } catch (LocalizedException $e) {
-            $this->_logger->error($pre . $e->getMessage());
-            $this->messageManager->addExceptionMessage($e, $e->getMessage());
-            $this->redirectToFailureUrl($order);
         } catch (Exception $e) {
             $this->_logger->error($pre . $e->getMessage());
-            $this->messageManager->addExceptionMessage($e, __('We can\'t start Payout Checkout.'));
+            $this->messageManager->addExceptionMessage($e, __('Error occurred, contact support or try again, please'));
             $this->redirectToFailureUrl($order);
         }
 

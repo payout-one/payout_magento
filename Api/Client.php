@@ -63,10 +63,10 @@ class Client
     public function __construct(array $config = array())
     {
         if (!function_exists('curl_init')) {
-            throw new Exception('Payout needs the CURL PHP extension.');
+            throw new Exception(__('Payout needs the CURL PHP extension'));
         }
         if (!function_exists('json_decode')) {
-            throw new Exception('Payout needs the JSON PHP extension.');
+            throw new Exception(__('Payout needs the JSON PHP extension'));
         }
 
         $this->config = array_merge(
@@ -79,7 +79,7 @@ class Client
         );
 
         if (empty($this->config['client_id'] || empty($this->config['client_secret']))) {
-            throw new Exception('Client id or secret is not filled in payout plugin configuration.');
+            throw new Exception(__('Client id or secret is not filled in payout plugin configuration'));
         }
     }
 
@@ -145,7 +145,7 @@ class Client
             $this->config['client_secret'],
             $response->signature
         )) {
-            throw new Exception('Payout error: Invalid signature in API response.');
+            throw new Exception(__('Payout error') . ': ' . __('Invalid signature in API response'));
         }
 
         return $response;
@@ -195,7 +195,7 @@ class Client
                 $response->signature,
             )
         ) {
-            throw new Exception('Payout error: Invalid signature in API response.');
+            throw new Exception(__('Payout error') . ': ' . __('Invalid signature in API response'));
         }
 
         return $response;

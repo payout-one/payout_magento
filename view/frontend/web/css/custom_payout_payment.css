@@ -1,0 +1,41 @@
+.order-status-payout {
+    text-align: center;
+    padding: 2rem;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background: #fff;
+    margin-bottom: 2rem;
+}
+
+.order-status-payout > div.payout-icon {
+    margin-bottom: 1rem;
+}
+
+.order-status-payout > div.payout-repeat {
+    margin-top: 1rem;
+}
+
+.order-status-payout .lib-icon {
+    font-size: 48px;
+}
+
+
+.order-status-payout.success h2 {
+    color: #28a745;
+    margin-bottom: 0.5rem;
+}
+
+.order-status-payout.pending h2 {
+    color: #f0ad4e;
+    margin-bottom: 0.5rem;
+}
+
+.order-status-payout p {
+    color: #555;
+    margin-bottom: 1rem;
+}
+
+.order-status-payout a.action.primary {
+    margin-top: 1rem;
+    display: inline-block;
+}

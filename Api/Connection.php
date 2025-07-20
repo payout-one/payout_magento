@@ -230,18 +230,18 @@ class Connection
     private function handleResponse(): mixed
     {
         if (curl_error($this->curl)) {
-            throw new Exception('Payout error: ' . curl_error($this->curl));
+            throw new Exception(__('Payout error') . ': ' . curl_error($this->curl));
         }
 
         $response = json_decode($this->response);
 
         if (isset($response->errors)) {
-            throw new Exception('Payout api response error: ' . json_encode($response->errors));
+            throw new Exception(__('Payout api response error') . ': ' . json_encode($response->errors));
         }
 
         $responseHttpCode = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
         if (!in_array($responseHttpCode, [200, 201])) {
-            throw new Exception('Payout api response error, non ok / created http response code: ' . $responseHttpCode);
+            throw new Exception(__('Payout api response error') . ', ' . __('non ok / created http response code') . ': ' . $responseHttpCode);
         }
 
         if (isset($response->token)) {

@@ -605,7 +605,7 @@ class Payout extends AbstractMethod
     private function createTransactionForCheckoutResponse(Order $order, array $rawDetailsInfoData, string $type): void
     {
         if (!in_array($type, [TransactionInterface::TYPE_ORDER, TransactionInterface::TYPE_CAPTURE])) {
-            $error = __("Given transaction type is not supported, can't create transaction for checkout");
+            $error = __('Given transaction type is not supported') . ', ' . __('can\'t create transaction for checkout');
             $this->_payoutlogger->error($error);
             throw new Exception($error);
         }
@@ -616,7 +616,7 @@ class Payout extends AbstractMethod
         $orderPayment = $order->getPayment();
 
         if (!($orderPayment instanceof Payment)) {
-            $error = __("Order payment is not of type payment, can't create transaction for checkout");
+            $error = __('Order payment is not of type payment') . ', ' . __('can\'t create transaction for checkout');
             $this->_payoutlogger->error($error);
             throw new Exception($error);
         }
@@ -635,8 +635,8 @@ class Payout extends AbstractMethod
             ->addTransactionCommentsToOrder(
                 $transaction,
                 $type == TransactionInterface::TYPE_ORDER
-                    ? 'Created checkout: ' . $checkoutId
-                    : __('The authorized amount is %1.',
+                    ? __('Created checkout') . ': ' . $checkoutId
+                    : __('The authorized amount is %1',
                     $order->getBaseCurrency()->formatTxt($order->getGrandTotal())
                 )
             );
@@ -695,7 +695,7 @@ class Payout extends AbstractMethod
             $data = isset($row['additional_information']) ? json_decode($row['additional_information'], true) : [];
 
             if (isset($data['raw_details_info']['idempotency_key'])) {
-                $this->_logger->log(LogLevel::INFO, "Obtained idempotency key " . $data['raw_details_info']['idempotency_key'] . ' in meantime');
+                $this->_logger->log(LogLevel::INFO, __('Obtained idempotency key') . ' ' . $data['raw_details_info']['idempotency_key'] . ' ' . __('in meantime'));
                 $connection->rollBack();
                 return (string)$data['raw_details_info']['idempotency_key'];
             }
@@ -725,13 +725,13 @@ class Payout extends AbstractMethod
     {
         $order = $transaction->getOrder();
         if (!isset($order) || !($order instanceof Order)) {
-            throw new Exception('Payment transaction ' . $transaction->getId() . ' - its order not loaded, can\'t repeat checkout for it');
+            throw new Exception(__('Payment transaction') . ' ' . $transaction->getId() . ' - ' . __('its order not loaded') . ', ' . __('can\'t repeat checkout for it'));
         }
         if ($transaction->getTxnType() != TransactionInterface::TYPE_ORDER) {
-            throw new Exception('Payment transaction ' . $transaction->getId() . ' is not of type order, can\'t repeat checkout for it');
+            throw new Exception(__('Payment transaction') . ' ' . $transaction->getId() . ' ' . __('is not of type order') . ', ' . __('can\'t repeat checkout for it'));
         }
         if (!isset($transaction->getAdditionalInformation('raw_details_info')['checkout_id'])) {
-            throw new Exception('Payment transaction ' . $transaction->getId() . ' has not checkout id in its additional data, can\'t repeat checkout for it');
+            throw new Exception(__('Payment transaction') . ' ' . $transaction->getId() . ' ' . __('has not checkout id in its additional data') . ', ' . __('can\'t repeat checkout for it'));
         }
 
         $checkoutId = (int)$transaction->getAdditionalInformation('raw_details_info')['checkout_id'];
@@ -766,7 +766,7 @@ class Payout extends AbstractMethod
         );
 
         $this->orderStatusHistoryRepository->save(
-            $order->addCommentToStatusHistory(__($message))
+            $order->addCommentToStatusHistory($message)
         );
 
         $order_successful_email = $this->getConfigData('order_email');
@@ -775,7 +775,7 @@ class Payout extends AbstractMethod
             $this->orderSender->send($order);
             $this->orderStatusHistoryRepository->save(
                 $order->addCommentToStatusHistory(
-                    __('Notified customer about order #%1.', $order->getId())
+                    __('Notified customer about order #%1', $order->getId())
                 )->setIsCustomerNotified(true)
             );
         }
@@ -797,7 +797,7 @@ class Payout extends AbstractMethod
             $this->invoiceSender->send($invoice);
             $this->orderStatusHistoryRepository->save(
                 $order->addCommentToStatusHistory(
-                    __('Notified customer about invoice #%1.', $invoice->getId())
+                    __('Notified customer about invoice #%1', $invoice->getId())
                 )->setIsCustomerNotified(true)
             );
         }

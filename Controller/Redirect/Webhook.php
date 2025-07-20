@@ -37,12 +37,12 @@ class Webhook extends AbstractPayout
         $payoutSecret = $this->getConfigData('encryption_key');
 
         if (!isset($webhookData->external_id)) {
-            $this->_payoutlogger->error("Webhook error: There is no external id");
+            $this->_payoutlogger->error(__('Webhook error') . ': ' . __('There is no external id'));
             return $this->getResponse();
         }
 
         if (empty($payoutSecret)) {
-            $this->_payoutlogger->error("Webhook error: Payout secret is not filled in configuration, can not verify signature");
+            $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Payout secret is not filled in configuration, can not verify signature'));
             return $this->getResponse();
         }
 
@@ -57,7 +57,7 @@ class Webhook extends AbstractPayout
                 $webhookData->signature
             )
         ) {
-            $this->_payoutlogger->error("Webhook error: Signature is not valid");
+            $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Signature is not valid'));
             return $this->getResponse();
         }
 
@@ -69,30 +69,30 @@ class Webhook extends AbstractPayout
         try {
             $order = $this->getOrderByPaymentId($external_id);
             if (!isset($order) || $order->getId() == null) {
-                $this->_payoutlogger->error("Webhook error: Order not found for external id (payment id): " . $external_id);
+                $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Order not found for external id (payment id)') . ': ' . $external_id);
                 return $this->getResponse();
             }
             if (!isset($webhookData->data->status)) {
-                $this->_payoutlogger->error("Webhook error: checkout status not set in webhook");
+                $this->_payoutlogger->error(__('Webhook error') . ': ' . __('checkout status not set in webhook'));
                 return $this->getResponse();
             }
             if ($webhookData->data->status != "succeeded") {
-                $this->_payoutlogger->info("Webhook info: checkout status is not succeeded (" . $webhookData->data->status . "), skipping");
+                $this->_payoutlogger->info(__('Webhook info') . ': ' . __('checkout status is not succeeded') . ' (' . $webhookData->data->status . '), ' . __('skipping'));
                 return $this->getResponse();
             }
             if ($order->getPayment()->getMethod() != "payout") {
-                $this->_payoutlogger->error("Webhook error: Payment method in order is not Payout");
+                $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Payment method in order is not Payout'));
                 return $this->getResponse();
             }
 
             $typeOrderTransactions = $this->_paymentMethod->getTypeOrderCheckoutTransactionsForOrder($order, (int)$webhookData->data->id);
             if (empty($typeOrderTransactions)) {
-                $this->_payoutlogger->error("Webhook error: Can\'t find order transaction for checkout");
+                $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Can\'t find order transaction for checkout'));
                 return $this->getResponse();
             }
 
             if (!empty($this->_paymentMethod->getTypeCaptureCheckoutTransactionsForOrder($order, (int)$webhookData->data->id))) {
-                $this->_payoutlogger->info("Webhook info: Success webhook for this checkout was already processed");
+                $this->_payoutlogger->info(__('Webhook info') . ': ' . __('Success webhook for this checkout was already processed'));
                 return $this->getResponse();
             }
 
