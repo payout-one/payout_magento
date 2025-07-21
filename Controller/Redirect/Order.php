@@ -9,7 +9,6 @@
 
 namespace Payout\Payment\Controller\Redirect;
 
-use Magento\Framework\App\ObjectManager;
 use Magento\Framework\View\Result\Page;
 use Magento\Sales\Api\Data\OrderInterface;
 use Payout\Payment\Controller\AbstractPayout;
@@ -21,31 +20,25 @@ class Order extends AbstractPayout
      */
     public function execute(): Page
     {
-        $params = $this->requestInterface->getParams();
+        $params = $this->request->getParams();
 
-        $orderId = $params['gid'];
+        $orderId = (string)$params['gid'];
 
         $page_object = $this->pageFactory->create();
         $order = $this->getOrderByIncrementId($orderId);
-        if ($order->getStatus() == "pending_payment") {
-            $this->redirect('checkout/onepage/failure');
+
+        if ($this->_paymentMethod->isAtLeastOneCheckoutInOrderSucceeded($order)) {
+            $this->redirectToSuccessUrl($order);
         } else {
-            $this->redirect('checkout/onepage/success');
+            $this->redirectToFailureUrl($order);
         }
 
         return $page_object;
     }
 
-    public function getOrder($id): OrderInterface
+    public function getOrderByIncrementId(string $incrementId): OrderInterface
     {
-        return $this->orderRepository->get($id);
-    }
-
-    public function getOrderByIncrementId($incrementId)
-    {
-        $objectManager = ObjectManager::getInstance();
-
-        return $objectManager->get('\Magento\Sales\Model\Order')->loadByIncrementId($incrementId);
+        return $this->orderInterface->loadByIncrementId($incrementId);
     }
 
 }

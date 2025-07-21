@@ -100,18 +100,21 @@ class Connection
     }
 
     /**
-     * Authenticate API connection. Make an HTTP POST request to the
-     * authorization endpoint  and obtain access token.
-     *
+     *  Authenticate API connection. Make an HTTP POST request to the
+     *  authorization endpoint  and obtain access token.
      * @param string $url
-     * @param string $client_id Payout client ID
-     * @param string $client_secret Payout client secret
-     *
+     * @param string $client_id
+     * @param string $client_secret
+     * @param int|null $timeout
      * @return mixed
      * @throws Exception
      */
-    public function authenticate(string $url, string $client_id, string $client_secret): mixed
+    public function authenticate(string $url, string $client_id, string $client_secret, int $timeout = null): mixed
     {
+        if (isset($timeout)) {
+            curl_setopt($this->curl, CURLOPT_TIMEOUT, $timeout);
+        }
+
         $this->initializeRequest();
 
         $credentials = json_encode(
@@ -126,6 +129,9 @@ class Connection
 
         $this->response = curl_exec($this->curl);
 
+        if (isset($timeout)) {
+            curl_setopt($this->curl, CURLOPT_TIMEOUT, 0);
+        }
         return $this->handleResponse();
     }
 
@@ -135,11 +141,16 @@ class Connection
      * @param string $url URL to which we send the request
      * @param mixed $body Data payload (JSON string or raw data)
      * @param array $headers
+     * @param int|null $timeout
      * @return mixed
      * @throws Exception
      */
-    public function post(string $url, mixed $body, array $headers = []): mixed
+    public function post(string $url, mixed $body, array $headers = [], int $timeout = null): mixed
     {
+        if (isset($timeout)) {
+            curl_setopt($this->curl, CURLOPT_TIMEOUT, $timeout);
+        }
+
         $this->addHeader('Authorization', 'Bearer ' . $this->token);
         foreach ($headers as $key => $header) {
             $this->addHeader($key, $header);
@@ -160,6 +171,9 @@ class Connection
         }
         curl_setopt($this->curl, CURLOPT_HTTPHEADER, $this->headers);
 
+        if (isset($timeout)) {
+            curl_setopt($this->curl, CURLOPT_TIMEOUT, 0);
+        }
         return $this->handleResponse();
     }
 
@@ -167,11 +181,15 @@ class Connection
      * Make an HTTP GET request to the specified endpoint.
      *
      * @param string $query Optional array of query string parameters
+     * @param int|null $timeout
      * @return mixed
      * @throws Exception
      */
-    public function get(string $query = ''): mixed
+    public function get(string $query = '', int $timeout = null): mixed
     {
+        if (isset($timeout)) {
+            curl_setopt($this->curl, CURLOPT_TIMEOUT, $timeout);
+        }
 
         $this->addHeader('Authorization', 'Bearer ' . $this->token);
         $this->initializeRequest();
@@ -182,8 +200,11 @@ class Connection
         curl_setopt($this->curl, CURLOPT_PUT, false);
         curl_setopt($this->curl, CURLOPT_HTTPGET, true);
 
-        curl_exec($this->curl);
+        $this->response = curl_exec($this->curl);
 
+        if (isset($timeout)) {
+            curl_setopt($this->curl, CURLOPT_TIMEOUT, 0);
+        }
         return $this->handleResponse();
     }
 
@@ -209,13 +230,18 @@ class Connection
     private function handleResponse(): mixed
     {
         if (curl_error($this->curl)) {
-            throw new Exception('Payout error: ' . curl_error($this->curl));
+            throw new Exception(__('Payout error') . ': ' . curl_error($this->curl));
         }
 
         $response = json_decode($this->response);
 
         if (isset($response->errors)) {
-            throw new Exception('Payout error: ' . json_encode($response->errors));
+            throw new Exception(__('Payout api response error') . ': ' . json_encode($response->errors));
+        }
+
+        $responseHttpCode = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
+        if (!in_array($responseHttpCode, [200, 201])) {
+            throw new Exception(__('Payout api response error') . ', ' . __('non ok / created http response code') . ': ' . $responseHttpCode);
         }
 
         if (isset($response->token)) {

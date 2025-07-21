@@ -21,6 +21,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Response\Http;
 use Magento\Framework\App\Response\RedirectInterface;
 use Magento\Framework\DB\TransactionFactory;
+use Magento\Framework\Exception\AlreadyExistsException;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Message\ManagerInterface as MessageManagerInterface;
@@ -28,9 +29,12 @@ use Magento\Framework\Session\Generic;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Framework\Url\Helper\Data;
 use Magento\Framework\UrlInterface;
+use Magento\Framework\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
+use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Email\Sender\InvoiceSender;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender;
@@ -47,6 +51,9 @@ use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Magento\Quote\Model\ResourceModel\Quote as QuoteResourceModel;
 use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\ObjectManagerInterface;
+use Magento\Sales\Api\TransactionRepositoryInterface;
+use Magento\Sales\Api\OrderPaymentRepositoryInterface;
+use Magento\Sales\Api\Data\OrderInterface;
 
 /**
  * Checkout Controller
@@ -199,17 +206,17 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
     /**
      * @var ResponseInterface
      */
-    protected ResponseInterface $responseInterface;
+    protected ResponseInterface $response;
 
     /**
      * @var ObjectManagerInterface
      */
-    protected ObjectManagerInterface $objectManagerInterface;
+    protected ObjectManagerInterface $objectManager;
 
     /**
      * @var RequestInterface
      */
-    protected RequestInterface $requestInterface;
+    protected RequestInterface $request;
 
     /**
      * @var MessageManagerInterface
@@ -219,7 +226,32 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
     /**
      * @var RedirectInterface
      */
-    protected RedirectInterface $redirectInterface;
+    protected RedirectInterface $redirect;
+
+    /**
+     * @var TransactionRepositoryInterface
+     */
+    protected TransactionRepositoryInterface $transactionRepository;
+
+    /**
+     * @var OrderPaymentRepositoryInterface
+     */
+    protected OrderPaymentRepositoryInterface $orderPaymentRepository;
+
+    /**
+     * @var OrderInterface
+     */
+    protected OrderInterface $orderInterface;
+
+    /**
+     * @var OrderStatusHistoryRepositoryInterface
+     */
+    protected OrderStatusHistoryRepositoryInterface $orderStatusHistoryRepository;
+
+    /**
+     * @var CartRepositoryInterface
+     */
+    protected CartRepositoryInterface $quoteRepository;
 
     /**
      * @param Context $context
@@ -245,31 +277,41 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
      * @param Builder $_transactionBuilder
      * @param OrderResourceModel $orderResourceModel
      * @param QuoteResourceModel $quoteResourceModel
+     * @param TransactionRepositoryInterface $transactionRepository
+     * @param OrderPaymentRepositoryInterface $orderPaymentRepository
+     * @param OrderInterface $orderInterface
+     * @param OrderStatusHistoryRepositoryInterface $orderStatusHistoryRepository
+     * @param CartRepositoryInterface $quoteRepository
      */
     public function __construct(
-        Context                         $context,
-        PageFactory                     $pageFactory,
-        \Magento\Customer\Model\Session $customerSession,
-        Session                         $checkoutSession,
-        OrderFactory                    $orderFactory,
-        Generic                         $payoutSession,
-        Data                            $urlHelper,
-        Url                             $customerUrl,
-        LoggerInterface                 $logger,
-        Logger                          $payoutlogger,
-        TransactionFactory              $transactionFactory,
-        InvoiceService                  $invoiceService,
-        InvoiceSender                   $invoiceSender,
-        Payout                          $paymentMethod,
-        UrlInterface                    $urlBuilder,
-        OrderRepositoryInterface        $orderRepository,
-        StoreManagerInterface           $storeManager,
-        OrderSender                     $OrderSender,
-        DateTime                        $date,
-        CollectionFactory               $orderCollectionFactory,
-        Builder                         $_transactionBuilder,
-        OrderResourceModel              $orderResourceModel,
-        QuoteResourceModel              $quoteResourceModel,
+        Context                               $context,
+        PageFactory                           $pageFactory,
+        \Magento\Customer\Model\Session       $customerSession,
+        Session                               $checkoutSession,
+        OrderFactory                          $orderFactory,
+        Generic                               $payoutSession,
+        Data                                  $urlHelper,
+        Url                                   $customerUrl,
+        LoggerInterface                       $logger,
+        Logger                                $payoutlogger,
+        TransactionFactory                    $transactionFactory,
+        InvoiceService                        $invoiceService,
+        InvoiceSender                         $invoiceSender,
+        Payout                                $paymentMethod,
+        UrlInterface                          $urlBuilder,
+        OrderRepositoryInterface              $orderRepository,
+        StoreManagerInterface                 $storeManager,
+        OrderSender                           $OrderSender,
+        DateTime                              $date,
+        CollectionFactory                     $orderCollectionFactory,
+        Builder                               $_transactionBuilder,
+        OrderResourceModel                    $orderResourceModel,
+        QuoteResourceModel                    $quoteResourceModel,
+        TransactionRepositoryInterface        $transactionRepository,
+        OrderPaymentRepositoryInterface       $orderPaymentRepository,
+        OrderInterface                        $orderInterface,
+        OrderStatusHistoryRepositoryInterface $orderStatusHistoryRepository,
+        CartRepositoryInterface               $quoteRepository,
     )
     {
         $pre = __METHOD__ . " : ";
@@ -298,19 +340,24 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
         $this->_date = $date;
         $this->_orderCollectionFactory = $orderCollectionFactory;
         $this->_transactionBuilder = $_transactionBuilder;
-        
-        $this->responseInterface = $context->getResponse();
-        $this->objectManagerInterface = $context->getObjectManager();
+
+        $this->response = $context->getResponse();
+        $this->objectManager = $context->getObjectManager();
         $this->messageManager = $context->getMessageManager();
-        $this->redirectInterface = $context->getRedirect();
-        $this->requestInterface = $context->getRequest();
+        $this->redirect = $context->getRedirect();
+        $this->request = $context->getRequest();
 
         $parameters = ['params' => [$this->_configMethod]];
-        $this->_config = $this->objectManagerInterface->create($this->_configType, $parameters);
+        $this->_config = $this->objectManager->create($this->_configType, $parameters);
 
         $this->_logger->debug($pre . 'eof');
         $this->orderResourceModel = $orderResourceModel;
         $this->quoteResourceModel = $quoteResourceModel;
+        $this->transactionRepository = $transactionRepository;
+        $this->orderPaymentRepository = $orderPaymentRepository;
+        $this->orderInterface = $orderInterface;
+        $this->orderStatusHistoryRepository = $orderStatusHistoryRepository;
+        $this->quoteRepository = $quoteRepository;
     }
 
     /**
@@ -334,7 +381,7 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
     /**
      * Custom getter for payment configuration
      *
-     * @param string $field i.e payout_id, test_mode
+     * @param string $field i.e payout_id, sandbox_mode
      *
      * @return mixed
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
@@ -381,19 +428,18 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
     }
 
     /**
-     * Instantiate
-     *
+     * @param Order $order
      * @return void
+     * @throws AlreadyExistsException
      * @throws LocalizedException
-     * @throws Exception
+     * @throws NoSuchEntityException
      */
-    protected function _initCheckout(): void
+    protected function _initCheckout(Order $order): void
     {
         $pre = __METHOD__ . " : ";
         $this->_logger->debug($pre . 'bof');
-        $this->_order = $this->_checkoutSession->getLastRealOrder();
 
-        if (!$this->_order->getId()) {
+        if (empty($order->getId())) {
             $response = $this->getResponse();
             if ($response instanceof Http) {
                 $response->setStatusHeader(404, '1.1', 'Not found');
@@ -401,14 +447,14 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
             throw new LocalizedException(__('We could not find "Order" for processing'));
         }
 
-        if ($this->_order->getState() != Order::STATE_PENDING_PAYMENT) {
-            $this->_order->setState(
+        if ($order->getState() != Order::STATE_PENDING_PAYMENT) {
+            $order->setState(
                 Order::STATE_PENDING_PAYMENT
             );
-            $this->orderResourceModel->save($this->_order);
+            $this->orderResourceModel->save($order);
         }
 
-        if ($this->_order->getQuoteId()) {
+        if ($order->getQuoteId()) {
             $this->_checkoutSession->setPayoutQuoteId($this->_checkoutSession->getQuoteId());
             $this->_checkoutSession->setPayoutSuccessQuoteId($this->_checkoutSession->getLastSuccessQuoteId());
             $this->_checkoutSession->setPayoutRealOrderId($this->_checkoutSession->getLastRealOrderId());
@@ -420,9 +466,27 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
         $this->_logger->debug($pre . 'eof');
     }
 
+    public function createCheckout(Order $order): Page
+    {
+        $pre = __METHOD__ . " : ";
+
+        $page_object = $this->pageFactory->create();
+
+        try {
+            $this->_initCheckout($order);
+            $this->redirect($this->_paymentMethod->createCheckoutForLastOrder());
+        } catch (Exception $e) {
+            $this->_logger->error($pre . $e->getMessage());
+            $this->messageManager->addExceptionMessage($e, __('Error occurred, contact support or try again, please'));
+            $this->redirectToFailureUrl($order);
+        }
+
+        return $page_object;
+    }
+
     public function getResponse(): ResponseInterface
     {
-        return $this->responseInterface;
+        return $this->response;
     }
 
     /**
@@ -470,7 +534,71 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
      */
     protected function redirect($path, array $arguments = []): ResponseInterface
     {
-        $this->redirectInterface->redirect($this->getResponse(), $path, $arguments);
+        $this->redirect->redirect($this->getResponse(), $path, $arguments);
         return $this->getResponse();
+    }
+
+    /**
+     * @param OrderInterface $order
+     * @return void
+     */
+    protected function redirectToOrderDetail(OrderInterface $order): void
+    {
+        if ($order->getCustomerIsGuest()) {
+            $this->redirect('sales/guest/view/');
+        } else {
+            $this->redirect("sales/order/view/order_id/{$order->getId()}/");
+        }
+    }
+
+    /**
+     * @param OrderInterface $order
+     * @return void
+     */
+    protected function redirectToSuccessUrl(OrderInterface $order): void
+    {
+        if ($this->_checkoutSession->getLastRealOrderId() != $order->getIncrementId()) {
+            $this->redirectToOrderDetail($order);
+        } else {
+            $this->redirectToOnePageSuccessUrl();
+        }
+    }
+
+    /**
+     * @param OrderInterface $order
+     * @return void
+     */
+    protected function redirectToFailureUrl(OrderInterface $order): void
+    {
+        if ($this->_checkoutSession->getLastRealOrderId() != $order->getIncrementId()) {
+            $this->redirectToOrderDetail($order);
+        } else {
+            $this->redirectToOnePageFailureUrl();
+        }
+    }
+
+    /**
+     * @return void
+     */
+    protected function redirectToOnePageSuccessUrl(): void
+    {
+        $this->redirectToOnePageUrl('checkout/onepage/success');
+    }
+
+    /**
+     * @return void
+     */
+    protected function redirectToOnePageFailureUrl(): void
+    {
+        $this->redirectToOnePageUrl('checkout/onepage/failure');
+    }
+
+    /**
+     * @param string $url
+     * @return void
+     */
+    private function redirectToOnePageUrl(string $url): void
+    {
+        $this->redirect($url);
     }
 }
