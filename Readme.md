@@ -27,7 +27,7 @@ Pre inštaláciu rozšírenia sú potrebné nasledujúce kroky:
     - `Client secret` - payout tajomstvo klienta (
       `bin/magento config:set payment/payout/encryption_key hodnota_encryption_key`)
     - `Test mode` - či má byť aktivovaný test mód - pripájanie na sandbox api(
-      `bin/magento config:set payment/payout/test_mode 0/1`)
+      `bin/magento config:set payment/payout/sandbox_mode 0/1`)
     - `Notify url` - túto url treba nastaviť pri generovaní api kľúča v payout merchant rozhraní
     - `Payment from Applicable Countries` - z ktorých krajín má byť povolená platba
         - zo všetkých krajín

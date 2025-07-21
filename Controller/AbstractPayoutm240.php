@@ -381,7 +381,7 @@ abstract class AbstractPayoutm240 implements ActionInterface, RedirectLoginInter
     /**
      * Custom getter for payment configuration
      *
-     * @param string $field i.e payout_id, test_mode
+     * @param string $field i.e payout_id, sandbox_mode
      *
      * @return mixed
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)

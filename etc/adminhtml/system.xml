@@ -34,7 +34,7 @@
                     <label>Notify Url</label>
                     <frontend_model>Payout\Payment\Block\System\Config\Form\Field\Disable</frontend_model>
                 </field>
-                <field id="test_mode" translate="label" type="select" sortOrder="3" showInDefault="1" showInWebsite="1"
+                <field id="sandbox_mode" translate="label" type="select" sortOrder="3" showInDefault="1" showInWebsite="1"
                        showInStore="1">
                     <label>Test Mode</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>

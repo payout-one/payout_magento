@@ -667,7 +667,7 @@ class Payout extends AbstractMethod
         return array(
             'client_id' => $this->getConfigData('payout_id'),
             'client_secret' => $this->getConfigData('encryption_key'),
-            'sandbox' => (bool)$this->getConfigData('test_mode'),
+            'sandbox' => (bool)$this->getConfigData('sandbox_mode'),
             'internal_payout_test_override' => (bool)$this->getConfigData('internal_payout_test_override'),
         );
     }

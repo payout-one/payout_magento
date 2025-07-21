@@ -42,7 +42,7 @@ use Payout\Payment\Model\Payout;
  */
 class Client
 {
-    const string API_URL = 'https://app.payout.one/api/v1/';
+    const string API_URL_PROD = 'https://app.payout.one/api/v1/';
     const string API_URL_SANDBOX = 'https://sandbox.payout.one/api/v1/';
     const string API_URL_TEST = 'https://test.payout.one/api/v1/';
 
@@ -162,7 +162,7 @@ class Client
     private function connection(): Connection
     {
         if (!isset($this->connection)) {
-            $api_url = $this->config['internal_payout_test_override'] ? self::API_URL_TEST : ($this->config['sandbox'] ? self::API_URL_SANDBOX : self::API_URL);
+            $api_url = $this->config['internal_payout_test_override'] ? self::API_URL_TEST : ($this->config['sandbox'] ? self::API_URL_SANDBOX : self::API_URL_PROD);
             $this->connection = new Connection($api_url);
             $this->connection->authenticate(
                 'authorize',
