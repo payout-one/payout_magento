@@ -18,6 +18,8 @@ Pre inštaláciu rozšírenia sú potrebné nasledujúce kroky:
     - `bin/magento setup:upgrade`
     - `bin/magento setup:di:compile`
     - `bin/magento setup:static-content:deploy -f`
+    - načítanie sk prekladov: `bin/magento setup:static-content:deploy sk_SK -f`
+    - načítanie en prekladov  `bin/magento setup:static-content:deploy en_US -f`
     - pre zmazanie cache: `bin/magento cache:clean`, `bin/magento cache:flush`
     - ak je potrebná reindexácia: `bin/magento indexer:reindex`
 3. Nastaviť konfigurácie rozšírenia
@@ -25,7 +27,7 @@ Pre inštaláciu rozšírenia sú potrebné nasledujúce kroky:
     - `Client secret` - payout tajomstvo klienta (
       `bin/magento config:set payment/payout/encryption_key hodnota_encryption_key`)
     - `Test mode` - či má byť aktivovaný test mód - pripájanie na sandbox api(
-      `bin/magento config:set payment/payout/test_mode 0/1`)
+      `bin/magento config:set payment/payout/sandbox_mode 0/1`)
     - `Notify url` - túto url treba nastaviť pri generovaní api kľúča v payout merchant rozhraní
     - `Payment from Applicable Countries` - z ktorých krajín má byť povolená platba
         - zo všetkých krajín

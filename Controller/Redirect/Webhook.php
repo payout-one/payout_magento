@@ -9,10 +9,9 @@
 
 namespace Payout\Payment\Controller\Redirect;
 
-use Magento\Framework\App\ObjectManager;
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Sales\Model\Order\Invoice;
-use Magento\Sales\Model\Order\Payment\Transaction;
+use Exception;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\Controller\ResultInterface;
 use Payout\Payment\Api\Client;
 use Payout\Payment\Controller\AbstractPayout;
 
@@ -25,9 +24,10 @@ use Payout\Payment\Controller\AbstractPayout;
 class Webhook extends AbstractPayout
 {
     /**
-     * Execute on Payout/redirect/success
+     * Execute on Payout/redirect/webhook
+     * @returns ResultInterface|ResponseInterface
      */
-    public function execute(): void
+    public function execute(): ResultInterface|ResponseInterface
     {
         $webhookData = json_decode(file_get_contents('php://input'));
 
@@ -37,13 +37,13 @@ class Webhook extends AbstractPayout
         $payoutSecret = $this->getConfigData('encryption_key');
 
         if (!isset($webhookData->external_id)) {
-            $this->_payoutlogger->error("Webhook error: There is no external id");
-            return;
+            $this->_payoutlogger->error(__('Webhook error') . ': ' . __('There is no external id'));
+            return $this->getResponse();
         }
 
         if (empty($payoutSecret)) {
-            $this->_payoutlogger->error("Webhook error: Payout secret is not filled in configuration, can not verify signature");
-            return;
+            $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Payout secret is not filled in configuration, can not verify signature'));
+            return $this->getResponse();
         }
 
         if (
@@ -57,8 +57,8 @@ class Webhook extends AbstractPayout
                 $webhookData->signature
             )
         ) {
-            $this->_payoutlogger->error("Webhook error: Signature is not valid");
-            return;
+            $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Signature is not valid'));
+            return $this->getResponse();
         }
 
         $external_id = $webhookData->external_id;
@@ -69,153 +69,70 @@ class Webhook extends AbstractPayout
         try {
             $order = $this->getOrderByPaymentId($external_id);
             if (!isset($order) || $order->getId() == null) {
-                $this->_payoutlogger->error("Webhook error: Order not found for external id (payment id): " . $external_id);
-                return;
+                $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Order not found for external id (payment id)') . ': ' . $external_id);
+                return $this->getResponse();
             }
             if (!isset($webhookData->data->status)) {
-                $this->_payoutlogger->error("Webhook error: checkout status not set in webhook");
-                return;
+                $this->_payoutlogger->error(__('Webhook error') . ': ' . __('checkout status not set in webhook'));
+                return $this->getResponse();
             }
             if ($webhookData->data->status != "succeeded") {
-                $this->_payoutlogger->info("Webhook info: checkout status is not succeeded (" . $webhookData->data->status . "), skipping");
-                return;
+                $this->_payoutlogger->info(__('Webhook info') . ': ' . __('checkout status is not succeeded') . ' (' . $webhookData->data->status . '), ' . __('skipping'));
+                return $this->getResponse();
             }
             if ($order->getPayment()->getMethod() != "payout") {
-                $this->_payoutlogger->error("Webhook error: Payment method in order is not Payout");
-                return;
+                $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Payment method in order is not Payout'));
+                return $this->getResponse();
             }
 
-            $objectManager = ObjectManager::getInstance();
-            $transactions = $objectManager->create('\Magento\Sales\Api\Data\TransactionSearchResultInterfaceFactory')->create()->addOrderIdFilter($order->getId());
-            foreach ($transactions->getItems() as $transaction) {
-                $transactionAdditionalInformation = $transaction->getAdditionalInformation();
-                if (
-                    isset($transactionAdditionalInformation['raw_details_info']['checkout_id'])
-                    && isset($transactionAdditionalInformation['raw_details_info']['source'])
-                    && $transactionAdditionalInformation['raw_details_info']['checkout_id'] == $webhookData->data->id
-                    && $transactionAdditionalInformation['raw_details_info']['source'] == "webhook"
-                ) {
-                    $this->_payoutlogger->info("Webhook info: Success webhook for this checkout was already processed");
-                    return;
-                }
+            $typeOrderTransactions = $this->_paymentMethod->getTypeOrderCheckoutTransactionsForOrder($order, (int)$webhookData->data->id);
+            if (empty($typeOrderTransactions)) {
+                $this->_payoutlogger->error(__('Webhook error') . ': ' . __('Can\'t find order transaction for checkout'));
+                return $this->getResponse();
             }
 
-            $status = \Magento\Sales\Model\Order::STATE_PROCESSING;
-            if ($this->getConfigData('Successful_Order_status') != "") {
-                $status = $this->getConfigData('Successful_Order_status');
+            if (!empty($this->_paymentMethod->getTypeCaptureCheckoutTransactionsForOrder($order, (int)$webhookData->data->id))) {
+                $this->_payoutlogger->info(__('Webhook info') . ': ' . __('Success webhook for this checkout was already processed'));
+                return $this->getResponse();
             }
-            $message = __(
-                'Redirect Response, Transaction has been approved: Payout_Checkout_Id: "%1"',
-                $webhookData->data->id
+
+            $this->_paymentMethod->createSuccessfulPayoutPaymentCapture(
+                $order,
+                [
+                    'checkout_id' => $webhookData->data->id,
+                    'order_id' => $order->getId(),
+                    'external_id' => $webhookData->external_id,
+                    'amount' => $webhookData->data->amount,
+                    'currency' => $webhookData->data->currency,
+                    'customer_email' => $webhookData->data->customer->email,
+                    'first_name' => $webhookData->data->customer->first_name,
+                    'last_name' => $webhookData->data->customer->last_name,
+                    'failure_reason' => $webhookData->data->payment->failure_reason,
+                    'payment_method' => $webhookData->data->payment->payment_method,
+                    'nonce' => $webhookData->nonce,
+                    'signature' => $webhookData->signature,
+                    'type' => $webhookData->type,
+                    'status' => $webhookData->data->status,
+                    'raw_data' => json_encode($webhookData),
+                    'source' => 'webhook',
+                ],
             );
-
-            $order->addStatusHistoryComment(__($message))->save();
-
-
-            $model = $this->_paymentMethod;
-            $order_successful_email = $model->getConfigData('order_email');
-
-            if ($order_successful_email != '0') {
-                $this->OrderSender->send($order);
-                $order->addStatusHistoryComment(
-                    __('Notified customer about order #%1.', $order->getId())
-                )->setIsCustomerNotified(true)->save();
-            }
-
-            // Capture invoice when payment is successfull
-            $invoice = $this->_invoiceService->prepareInvoice($order);
-            $invoice->setRequestedCaptureCase(Invoice::CAPTURE_ONLINE);
-            $invoice->register();
-
-            // Save the invoice to the order
-            $transaction = $this->_objectManager->create('Magento\Framework\DB\Transaction')
-                ->addObject($invoice)
-                ->addObject($invoice->getOrder());
-
-            $transaction->save();
-
-            // Magento\Sales\Model\Order\Email\Sender\InvoiceSender
-            $send_invoice_email = $model->getConfigData('invoice_email');
-            if ($send_invoice_email != '0') {
-                $this->invoiceSender->send($invoice);
-                $order->addStatusHistoryComment(
-                    __('Notified customer about invoice #%1.', $invoice->getId())
-                )->setIsCustomerNotified(true)->save();
-            }
-
-            // Save Transaction Response
-            $this->createTransaction($webhookData, $order);
-            $order->setState($status)->setStatus($status)->save();
-        } catch (LocalizedException $e) {
-            $this->_logger->error($pre . $e->getMessage());
-        }
-    }
-
-    public function createTransaction($webhookData, $order = null): void
-    {
-        $checkoutId = $webhookData->data->id;
-        $additionalData = array(
-            'checkout_id' => $webhookData->data->id,
-            'order_id' => $order->getId(),
-            'external_id' => $webhookData->external_id,
-            'amount' => $webhookData->data->amount,
-            'currency' => $webhookData->data->currency,
-            'customer_email' => $webhookData->data->customer->email,
-            'first_name' => $webhookData->data->customer->first_name,
-            'last_name' => $webhookData->data->customer->last_name,
-            'failure_reason' => $webhookData->data->payment->failure_reason,
-            'payment_method' => $webhookData->data->payment->payment_method,
-            'nonce' => $webhookData->nonce,
-            'signature' => $webhookData->signature,
-            'type' => $webhookData->type,
-            'raw_data' => json_encode($webhookData),
-            'source' => 'webhook',
-        );
-
-        try {
-            //get payment object from order object
-            $payment = $order->getPayment();
-            $payment->setLastTransId($checkoutId)
-                ->setTransactionId($checkoutId)
-                ->setAdditionalInformation(
-                    [Transaction::RAW_DETAILS => $additionalData]
-                );
-            $formatedPrice = $order->getBaseCurrency()->formatTxt(
-                $order->getGrandTotal()
-            );
-
-            $message = __('The authorized amount is %1.', $formatedPrice);
-            //get the object of builder class
-            $trans = $this->_transactionBuilder;
-            $transaction = $trans->setPayment($payment)
-                ->setOrder($order)
-                ->setTransactionId($checkoutId)
-                ->setAdditionalInformation(
-                    [Transaction::RAW_DETAILS => $additionalData]
-                )
-                ->setFailSafe(true)
-                //build method creates the transaction and returns the object
-                ->build(Transaction::TYPE_CAPTURE);
-
-            $payment->addTransactionCommentsToOrder(
-                $transaction,
-                $message
-            );
-            $payment->setParentTransactionId(null);
-            $payment->save();
-            $order->save();
-
-            $transaction->save()->getTransactionId();
         } catch (Exception $e) {
-            $this->_logger->error(__METHOD__ . " : Error creating payment transaction: " . $e->getMessage());
+            $this->_logger->error($pre . $e->getMessage() . ' trace: ' . $e->getTraceAsString());
         }
+        return $this->getResponse();
     }
 
-    private function getOrderByPaymentId($paymentId)
+    /**
+     * @param $paymentId
+     * @return \Magento\Sales\Model\Order|null
+     */
+    private function getOrderByPaymentId($paymentId): \Magento\Sales\Model\Order|null
     {
-        $objectManager = ObjectManager::getInstance();
-        $payment = $objectManager->create('Magento\Sales\Model\Order\PaymentFactory')->create()->load($paymentId);
-
-        return $payment->getOrder();
+        try {
+            return $this->orderPaymentRepository->get($paymentId)->getOrder();
+        } catch (Exception) {
+            return null;
+        }
     }
 }

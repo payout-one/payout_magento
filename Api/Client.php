@@ -26,6 +26,7 @@
 namespace Payout\Payment\Api;
 
 use Exception;
+use Payout\Payment\Model\Payout;
 
 /**
  * Class Client
@@ -41,17 +42,15 @@ use Exception;
  */
 class Client
 {
-    const string LIB_VER = '1.0.0';
-    const string API_URL = 'https://app.payout.one/api/v1/';
+    const string API_URL_PROD = 'https://app.payout.one/api/v1/';
     const string API_URL_SANDBOX = 'https://sandbox.payout.one/api/v1/';
+    const string API_URL_TEST = 'https://test.payout.one/api/v1/';
 
     /**
      * @var array $config API client configuration
-     * @var string $token Obtained API access token
      * @var Connection $connection Connection instance
      */
     private array $config;
-    private mixed $token;
     private Connection $connection;
 
     /**
@@ -64,10 +63,10 @@ class Client
     public function __construct(array $config = array())
     {
         if (!function_exists('curl_init')) {
-            throw new Exception('Payout needs the CURL PHP extension.');
+            throw new Exception(__('Payout needs the CURL PHP extension'));
         }
         if (!function_exists('json_decode')) {
-            throw new Exception('Payout needs the JSON PHP extension.');
+            throw new Exception(__('Payout needs the JSON PHP extension'));
         }
 
         $this->config = array_merge(
@@ -78,22 +77,17 @@ class Client
             ],
             $config
         );
-    }
 
-    /**
-     * Get a string containing the version of the library.
-     *
-     * @return string
-     */
-    public function getLibraryVersion(): string
-    {
-        return self::LIB_VER;
+        if (empty($this->config['client_id'] || empty($this->config['client_secret']))) {
+            throw new Exception(__('Client id or secret is not filled in payout plugin configuration'));
+        }
     }
 
     /**
      * Verify signature obtained in API response.
      *
      * @param array $message to be signed
+     * @param string $secret
      * @param string $signature from response
      *
      * @return bool
@@ -144,14 +138,14 @@ class Client
             $headers['Idempotency-Key'] = $data['idempotency_key'];
         }
 
-        $response = $this->connection()->post('checkouts', $prepared_checkout, $headers);
+        $response = $this->connection()->post('checkouts', $prepared_checkout, $headers, Payout::CREATE_CHECKOUT_TIMEOUT);
 
         if (!self::verifySignature(
             array($response->amount, $response->currency, $response->external_id, $response->nonce),
             $this->config['client_secret'],
             $response->signature
         )) {
-            throw new Exception('Payout error: Invalid signature in API response.');
+            throw new Exception(__('Payout error') . ': ' . __('Invalid signature in API response'));
         }
 
         return $response;
@@ -168,16 +162,43 @@ class Client
     private function connection(): Connection
     {
         if (!isset($this->connection)) {
-            $api_url = ($this->config['sandbox']) ? self::API_URL_SANDBOX : self::API_URL;
+            $api_url = $this->config['internal_payout_test_override'] ? self::API_URL_TEST : ($this->config['sandbox'] ? self::API_URL_SANDBOX : self::API_URL_PROD);
             $this->connection = new Connection($api_url);
-            $this->token = $this->connection->authenticate(
+            $this->connection->authenticate(
                 'authorize',
                 $this->config['client_id'],
-                $this->config['client_secret']
+                $this->config['client_secret'],
+                Payout::AUTHENTICATE_TIMEOUT,
             );
         }
 
         return $this->connection;
+    }
+
+    /**
+     * Get checkout details from API.
+     *
+     * @param integer $checkout_id
+     *
+     * @return mixed
+     * @throws Exception
+     */
+    public function retrieveCheckout(int $checkout_id): mixed
+    {
+        $url = 'checkouts/' . $checkout_id;
+        $response = $this->connection()->get($url, Payout::RETRIEVE_CHECKOUT_TIMEOUT);
+
+        if (
+            !$this->verifySignature(
+                [$response->amount, $response->currency, $response->external_id, $response->nonce],
+                $this->config['client_secret'],
+                $response->signature,
+            )
+        ) {
+            throw new Exception(__('Payout error') . ': ' . __('Invalid signature in API response'));
+        }
+
+        return $response;
     }
 
     /**
