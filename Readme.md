@@ -48,7 +48,7 @@ Pre aktualizáciu rozšírenia sú potrebné nasledujúce kroky:
    tool (https://experienceleague.adobe.com/en/docs/commerce-operations/tools/cli-reference/commerce-on-premises)
     - Ak už bol modul v predošlej verzii nainštalovaný manuálne v zložke app/code/Payout/Payment
         - vymazať priečinok app/code/Payout
-        - `bin/composer require payout/payment-magento
+        - `bin/composer require payout/payment-magento`
     - Ak bol modul nainštalovaný v predošlej verzii pomocou composer-a
         - `bin/composer update payout/payment-magento`
     - `bin/magento setup:upgrade`
