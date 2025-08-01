@@ -15,7 +15,7 @@
 "Order not loaded correctly","Objednávka nebola správne načítaná"
 "Can't verify repeat request","nie je možné overiť opakovanú požiadavku"
 "protect code is not available or not matching","ochranný kód nie je dostupný alebo sa nezhoduje"
-"Payment transaction","Transackia platby"
+"Payment transaction","Transakcia platby"
 "checkout changed its status to successful in meantime","stav checkout-u sa medzičasom zmenil na úspešný"
 "Webhook error","Chyba webhook-u"
 "There is no external id","Nie je poskytnuté externé id"

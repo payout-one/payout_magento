@@ -1,5 +1,5 @@
 {
-    "name": "payout/payment",
+    "name": "payout/payment-magento",
     "description": "Payout Payment Extension",
     "require": {
         "php": "^8.3",
@@ -7,7 +7,7 @@
         "ext-openssl": "*"
     },
     "type": "magento2-module",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "license": [
         "OSL-3.0",
         "AFL-3.0"

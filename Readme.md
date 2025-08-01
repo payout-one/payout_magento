@@ -12,9 +12,9 @@ php 8.3 a vyššie
 
 Pre inštaláciu rozšírenia sú potrebné nasledujúce kroky:
 
-1. Nakopírovať súbory rozšírenia do magento zložky app/code/Payout/Payment
-2. Spustiť príkazy cez magento cli
+1. Spustiť príkazy cez magento cli
    tool (https://experienceleague.adobe.com/en/docs/commerce-operations/tools/cli-reference/commerce-on-premises)
+    - `bin/composer require payout/payment-magento`
     - `bin/magento setup:upgrade`
     - `bin/magento setup:di:compile`
     - `bin/magento setup:static-content:deploy -f`
@@ -22,7 +22,7 @@ Pre inštaláciu rozšírenia sú potrebné nasledujúce kroky:
     - načítanie en prekladov  `bin/magento setup:static-content:deploy en_US -f`
     - pre zmazanie cache: `bin/magento cache:clean`, `bin/magento cache:flush`
     - ak je potrebná reindexácia: `bin/magento indexer:reindex`
-3. Nastaviť konfigurácie rozšírenia
+2. Nastaviť konfigurácie rozšírenia
     - `Client id` - payout id klienta (`bin/magento config:set payment/payout/payout_id hodnota_id`)
     - `Client secret` - payout tajomstvo klienta (
       `bin/magento config:set payment/payout/encryption_key hodnota_encryption_key`)
@@ -39,6 +39,25 @@ Pre inštaláciu rozšírenia sú potrebné nasledujúce kroky:
     - `Successful Order status` - aký stav objednávky nastaviť po úspešnej platbe, ak nie je zvolený, default je
       processing
       ![config_set_magento_admin.png](config_set_magento_admin.png)
+
+## Aktualizácia rozšírenia
+
+Pre aktualizáciu rozšírenia sú potrebné nasledujúce kroky:
+
+1. Spustiť príkazy cez magento cli
+   tool (https://experienceleague.adobe.com/en/docs/commerce-operations/tools/cli-reference/commerce-on-premises)
+    - Ak už bol modul v predošlej verzii nainštalovaný manuálne v zložke app/code/Payout/Payment
+        - vymazať priečinok app/code/Payout
+        - `bin/composer require payout/payment-magento`
+    - Ak bol modul nainštalovaný v predošlej verzii pomocou composer-a
+        - `bin/composer update payout/payment-magento`
+    - `bin/magento setup:upgrade`
+    - `bin/magento setup:di:compile`
+    - `bin/magento setup:static-content:deploy -f`
+    - načítanie sk prekladov: `bin/magento setup:static-content:deploy sk_SK -f`
+    - načítanie en prekladov  `bin/magento setup:static-content:deploy en_US -f`
+    - pre zmazanie cache: `bin/magento cache:clean`, `bin/magento cache:flush`
+    - ak je potrebná reindexácia: `bin/magento indexer:reindex`
 
 ## Admin rozhranie
 
